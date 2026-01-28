@@ -161,7 +161,9 @@ class RewardsCfg:
 
     reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0)
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.11}, weight=15.0)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.11}, weight=8.0)
+
+    high_grasp_bonus = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.15}, weight=5.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
@@ -175,15 +177,15 @@ class RewardsCfg:
         weight=5.0,
     )
 
+
     # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-5e-3)
 
     joint_vel = RewTerm(
         func=mdp.joint_vel_l2,
-        weight=-1e-4,
+        weight=-5e-3,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
-
 
 @configclass
 class TerminationsCfg:
