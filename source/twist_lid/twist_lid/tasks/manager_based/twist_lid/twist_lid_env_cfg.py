@@ -163,7 +163,7 @@ class RewardsCfg:
 
     lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.11}, weight=15.0)
 
-    bonus_lift_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.14}, weight=1.0)
+    bonus_lift_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.16}, weight=1.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
@@ -203,7 +203,7 @@ class RewardsCfg:
         weight=-1e-4,
     )
 
-    bonus_lift_penality = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.18}, weight=-1.0)
+    bonus_lift_penality = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.25}, weight=-1.0)
 
 @configclass
 class TerminationsCfg:
