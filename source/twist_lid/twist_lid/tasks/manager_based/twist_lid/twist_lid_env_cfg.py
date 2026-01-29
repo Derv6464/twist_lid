@@ -163,6 +163,8 @@ class RewardsCfg:
 
     lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.11}, weight=15.0)
 
+    bonus_lift_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.14}, weight=1.0)
+
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.3, "minimal_height": 0.11, "command_name": "object_pose"},
@@ -186,8 +188,22 @@ class RewardsCfg:
 
     upright_penalty = RewTerm(
         func=mdp.object_uprightness,
-        weight=0,
+        weight=-1e-4,
     )
+
+    object_lin_vel_penalty = RewTerm(
+        func=mdp.root_lin_vel_l2,
+        params={"object_cfg": SceneEntityCfg("object")},
+        weight=-1e-4,
+    )
+
+    object_ang_vel_penalty = RewTerm(
+        func=mdp.root_ang_vel_l2,
+        params={"object_cfg": SceneEntityCfg("object")},
+        weight=-1e-4,
+    )
+
+    bonus_lift_penality = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.18}, weight=-1.0)
 
 @configclass
 class TerminationsCfg:
@@ -206,16 +222,16 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     action_rate = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -1e-1, "num_steps": 10000}
+        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.2, "num_steps": 10000}
     )
 
     joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -1e-1, "num_steps": 10000}
+        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.2, "num_steps": 10000}
     )
 
     upright_penalty = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "upright_penalty", "weight": -1e-1, "num_steps": 20000}
+        params={"term_name": "upright_penalty", "weight": -0.2, "num_steps": 11000}
     )
 
 ##
@@ -292,7 +308,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
 
         # general settings
         self.decimation = 2
-        self.episode_length_s = 5.0
+        self.episode_length_s = 10.0
         # simulation settings
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = self.decimation

@@ -29,8 +29,7 @@ def object_position_in_robot_root_frame(
     object_pos_b, _ = subtract_frame_transforms(robot.data.root_pos_w, robot.data.root_quat_w, object_pos_w)
     return object_pos_b
 
-import torch
-from isaaclab.managers import SceneEntityCfg
+
 
 def object_uprightness(
     env,
@@ -77,3 +76,14 @@ def object_uprightness(
     return penalty
 
 
+def root_lin_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
+    """L2 norm of the object's linear velocity in world frame."""
+    obj = env.scene[object_cfg.name]
+    vel = obj.data.root_vel_w[:, :3]  # linear velocity
+    return torch.norm(vel, dim=1)
+
+def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
+    """L2 norm of the object's angular velocity in world frame."""
+    obj = env.scene[object_cfg.name]
+    ang_vel = obj.data.root_ang_vel_w[:, :3]  # angular velocity
+    return torch.norm(ang_vel, dim=1)
