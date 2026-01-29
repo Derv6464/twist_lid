@@ -231,7 +231,7 @@ class CurriculumCfg:
 
     upright_penalty = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "upright_penalty", "weight": -0.2, "num_steps": 11000}
+        params={"term_name": "upright_penalty", "weight": -1, "num_steps": 11000}
     )
 
 ##
