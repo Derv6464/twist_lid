@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 def object_position_in_robot_root_frame(
     env: ManagerBasedRLEnv,
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot_bottle"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("bottle"),
 ) -> torch.Tensor:
     """The position of the object in the robot's root frame."""
     robot: RigidObject = env.scene[robot_cfg.name]
@@ -33,7 +33,7 @@ def object_position_in_robot_root_frame(
 
 def object_uprightness(
     env,
-    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("bottle"),
 ) -> torch.Tensor:
     """Penalty for how far the object is from upright.
 
@@ -76,13 +76,13 @@ def object_uprightness(
     return penalty
 
 
-def root_lin_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
+def root_lin_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")) -> torch.Tensor:
     """L2 norm of the object's linear velocity in world frame."""
     obj = env.scene[object_cfg.name]
     vel = obj.data.root_vel_w[:, :3]  # linear velocity
     return torch.norm(vel, dim=1)
 
-def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
+def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")) -> torch.Tensor:
     """L2 norm of the object's angular velocity in world frame."""
     obj = env.scene[object_cfg.name]
     ang_vel = obj.data.root_ang_vel_w[:, :3]  # angular velocity
