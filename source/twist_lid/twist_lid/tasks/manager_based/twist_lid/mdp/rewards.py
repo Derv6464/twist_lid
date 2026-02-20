@@ -30,7 +30,7 @@ def object_ee_distance(
     env: ManagerBasedRLEnv,
     std: float,
     object_cfg: SceneEntityCfg = SceneEntityCfg("bottle"),
-    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_bottle"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame_bottle"),
 ) -> torch.Tensor:
     """Reward the agent for reaching the object using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)

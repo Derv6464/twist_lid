@@ -46,13 +46,13 @@ class TwistLidSceneCfg(InteractiveSceneCfg):
     # Tables - make prim paths unique
     table_bottle: AssetBaseCfg = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TableBottle",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.5, 0.0, 0.0], rot=[0.707, 0.0, 0.0, 0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.2, 0.0, 0.0], rot=[0.707, 0.0, 0.0, -0.707]),
         spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"),
     )
 
     table_lid: AssetBaseCfg = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TableLid",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.5, 0.0, 1.5], rot=[0.707, 0.0, 0.0, 0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.5, 1.0, 0], rot=[0.707, 0.0, 0.0, 0.707]),
         spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"),
     )
 
@@ -222,6 +222,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.robot_bottle = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotBottle")
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
         self.scene.robot = self.scene.robot_bottle
+
         # Two cylinders: bottle (green), lid (blue)
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Bottle",
@@ -247,7 +248,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.lid = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Lid",
             spawn=sim_utils.CylinderCfg(
-                radius=0.03, height=0.05,
+                radius=0.02, height=0.04,
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,
@@ -265,19 +266,34 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             ),
         )
 
+
+        self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.0]
+        #self.scene.robot_bottle.init_state.rot = [-0.707, 0.0, 0.0, -0.707]
+        self.scene.robot_lid.init_state.pos    = [0.0,  1.0, 0.0]
+
+        #self.scene.table_bottle.init_state.pos = [0.6, -0.6, 0.0]
+
+        self.scene.bottle.init_state.pos = [0.65, -0.2, 0.1]
+        self.scene.lid.init_state.pos = [0.65, 1.0, 0.1]
+
         # End-effector frame transformers for both robots
-        marker_cfg = FRAME_MARKER_CFG.copy()
-        marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
-        marker_cfg.prim_path = "/Visuals/FrameTransformer"
+        marker_cfg_bottle = FRAME_MARKER_CFG.copy()
+        marker_cfg_bottle.markers["frame"].scale = (0.1, 0.1, 0.1)
+        marker_cfg_lid = FRAME_MARKER_CFG.copy()
+        marker_cfg_bottle.markers["frame"].scale = (0.1, 0.1, 0.1)
+        
+        marker_cfg_bottle.prim_path = "{ENV_REGEX_NS}/Visuals/FrameBottle"
+        marker_cfg_lid.prim_path    = "{ENV_REGEX_NS}/Visuals/FrameLid"
+
 
         self.scene.ee_frame_bottle = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/RobotBottle/panda_link0",
             debug_vis=False,
-            visualizer_cfg=marker_cfg,
+            visualizer_cfg=marker_cfg_bottle,
             target_frames=[
                 FrameTransformerCfg.FrameCfg(
                     prim_path="{ENV_REGEX_NS}/RobotBottle/panda_hand",
-                    name="ee_bottle",
+                    name="ee_frame_bottle",
                     offset=OffsetCfg(pos=[0.0, 0.0, 0.08]),
                 ),
             ],
@@ -286,7 +302,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.ee_frame_lid = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/RobotLid/panda_link0",
             debug_vis=False,
-            visualizer_cfg=marker_cfg,
+            visualizer_cfg=marker_cfg_lid,
             target_frames=[
                 FrameTransformerCfg.FrameCfg(
                     prim_path="{ENV_REGEX_NS}/RobotLid/panda_hand",
