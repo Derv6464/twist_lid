@@ -268,6 +268,12 @@ class CurriculumCfg:
     #b_upright_penalty = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "b_upright_penalty", "weight": -0.5, "num_steps": 11000})
     #l_upright_penalty = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "l_upright_penalty", "weight": -0.5, "num_steps": 11000})
 
+from omni.isaac.core.utils.stage import get_current_stage
+
+def print_all_prim_paths():
+    stage = get_current_stage()
+    for prim in stage.Traverse():
+        print(prim.GetPath().pathString)
 
 @configclass
 class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
@@ -290,7 +296,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             prim_path="{ENV_REGEX_NS}/BottleAsset",
             spawn=sim_utils.UsdFileCfg(usd_path=USD_BOTTLE_WITH_LID),
         )
-        
+        print_all_prim_paths()
         # Bottle → reference the child prim
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/BottleAsset/bottle014/body",
