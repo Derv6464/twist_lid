@@ -286,30 +286,19 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
         self.scene.robot = self.scene.robot_bottle
 
-        self.scene.bottle = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Bottle",
-            spawn=RigidObjectSpawnerCfg(
-                func=spawn_from_prim_path,
-                usd_path=USD_BOTTLE_WITH_LID,
-                source_prim_path="/bottle014/body",
-            ),
-            init_state=RigidObjectCfg.InitialStateCfg(
-                pos=[0.5, 0.0, 0.8],
-                rot=[1.0, 0.0, 0.0, 0.0],
-            ),
+        self.scene.bottle_asset = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/BottleAsset",
+            spawn=sim_utils.UsdFileCfg(usd_path=USD_BOTTLE_WITH_LID),
         )
-
+        
+        # Bottle → reference the child prim
+        self.scene.bottle = RigidObjectCfg(
+            prim_path="{ENV_REGEX_NS}/BottleAsset/bottle014/body",
+        )
+        
+        # Lid → reference the child prim
         self.scene.lid = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Lid",
-            spawn=RigidObjectSpawnerCfg(
-                func=spawn_from_prim_path,
-                usd_path=USD_BOTTLE_WITH_LID,
-                source_prim_path="/bottle014/lid",
-            ),
-            init_state=RigidObjectCfg.InitialStateCfg(
-                pos=[0.5, 1.5, 0.8],
-                rot=[1.0, 0.0, 0.0, 0.0],
-            ),
+            prim_path="{ENV_REGEX_NS}/BottleAsset/bottle014/lid",
         )
 
 
