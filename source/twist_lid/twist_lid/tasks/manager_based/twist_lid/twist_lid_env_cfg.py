@@ -288,9 +288,10 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
 
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Bottle",
-            spawn=sim_utils.UsdFileCfg(
+            spawn=RigidObjectSpawnerCfg(
+                func=spawn_from_prim_path,
                 usd_path=USD_BOTTLE_WITH_LID,
-                prim_path="/bottle014/body",     
+                source_prim_path="/bottle014/body",
             ),
             init_state=RigidObjectCfg.InitialStateCfg(
                 pos=[0.5, 0.0, 0.8],
@@ -298,12 +299,12 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             ),
         )
 
-        # Lid (comes from /bottle014/lid)
         self.scene.lid = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Lid",
-            spawn=sim_utils.UsdFileCfg(
+            spawn=RigidObjectSpawnerCfg(
+                func=spawn_from_prim_path,
                 usd_path=USD_BOTTLE_WITH_LID,
-                prim_path="/bottle014/lid",      
+                source_prim_path="/bottle014/lid",
             ),
             init_state=RigidObjectCfg.InitialStateCfg(
                 pos=[0.5, 1.5, 0.8],
