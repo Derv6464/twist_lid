@@ -25,7 +25,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # robot prefab
 from isaaclab.markers.config import FRAME_MARKER_CFG
 
 from . import mdp
-
+USD_BOTTLE_WITH_LID = '/home/dgargan2/bottle_open/assets/bottle.usda'
 
 @configclass
 class TwistLidSceneCfg(InteractiveSceneCfg):
