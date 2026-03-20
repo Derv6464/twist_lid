@@ -286,46 +286,28 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
         self.scene.robot = self.scene.robot_bottle
 
-        # Two cylinders: bottle (green), lid (blue)
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Bottle",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.03, height=0.2,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
-                    disable_gravity=False,
-                ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), roughness=1.0),
+            spawn=sim_utils.UsdFileCfg(
+                usd_path=USD_BOTTLE_WITH_LID,
+                prim_path="/bottle014/body",     
             ),
             init_state=RigidObjectCfg.InitialStateCfg(
-                pos=[0.55, 0.0, 0.1], rot=[1.0, 0.0, 0.0, 0.0]
+                pos=[0.5, 0.0, 0.8],
+                rot=[1.0, 0.0, 0.0, 0.0],
             ),
         )
 
+        # Lid (comes from /bottle014/lid)
         self.scene.lid = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Lid",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.02, height=0.04,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
-                    disable_gravity=False,
-                ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.4, 1.0), roughness=1.0),
+            spawn=sim_utils.UsdFileCfg(
+                usd_path=USD_BOTTLE_WITH_LID,
+                prim_path="/bottle014/lid",      
             ),
             init_state=RigidObjectCfg.InitialStateCfg(
-                pos=[0.55, 0.0, 1.6], rot=[1.0, 0.0, 0.0, 0.0]
+                pos=[0.5, 1.5, 0.8],
+                rot=[1.0, 0.0, 0.0, 0.0],
             ),
         )
 
