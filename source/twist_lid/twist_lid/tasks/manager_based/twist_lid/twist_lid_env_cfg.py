@@ -46,20 +46,26 @@ class TwistLidSceneCfg(InteractiveSceneCfg):
     # Tables - make prim paths unique
     table_bottle: AssetBaseCfg = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TableBottle",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.2, 0.0, 0.0], rot=[0.707, 0.0, 0.0, -0.707]),
-        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.8]),
+        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd"),
+    )
+
+    table_middle: AssetBaseCfg = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/TableMiddle",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.75, 0.8]),
+        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd"),
     )
 
     table_lid: AssetBaseCfg = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TableLid",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.5, 1.0, 0], rot=[0.707, 0.0, 0.0, 0.707]),
-        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 1.5, 0.8]),
+        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd"),
     )
 
     # Ground + light
     plane: AssetBaseCfg = AssetBaseCfg(
         prim_path="/World/GroundPlane",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, -1.05]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0]),
         spawn=GroundPlaneCfg(),
     )
     light: AssetBaseCfg = AssetBaseCfg(
@@ -128,10 +134,18 @@ class ObservationsCfg:
 
     @configclass
     class PolicyCfg(ObsGroup):
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)  # typically uses SceneEntityCfg("object")
-        target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
+        b_joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg" :SceneEntityCfg("robot_bottle")})
+        l_joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg" :SceneEntityCfg("robot_lid") })
+
+        b_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_bottle")})
+        l_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_lid")})
+        
+        b_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_bottle"), "object_cfg":SceneEntityCfg("bottle")})  # typically uses SceneEntityCfg("object")
+        l_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_lid"), "object_cfg":SceneEntityCfg("lid")})  # typically uses SceneEntityCfg("object")
+
+        b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
+        l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose"})
+        
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self) -> None:
@@ -145,7 +159,7 @@ class ObservationsCfg:
 class EventCfg:
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
-    reset_object_position = EventTerm(
+    b_reset_object_position = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
@@ -155,55 +169,104 @@ class EventCfg:
         },
     )
 
+    l_reset_object_position = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
+            "velocity_range": {},
+            "asset_cfg": SceneEntityCfg("lid", body_names="Lid"),
+        },
+    )
+
 
 @configclass
 class RewardsCfg:
-    reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0)
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.11}, weight=15.0)
-    bonus_lift_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.16}, weight=1.0)
+    b_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.3, "object_cfg": SceneEntityCfg("bottle"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_bottle") }, weight=5.0)
+    l_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1, "object_cfg": SceneEntityCfg("lid"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_lid") }, weight=2.0)
+    
+    b_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8+0.11), "object_cfg": SceneEntityCfg("bottle")}, weight=15.0)
+    l_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8+0.07), "object_cfg": SceneEntityCfg("lid")}, weight=15.0)
+    
+    b_bonus_lift_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8+0.16), "object_cfg": SceneEntityCfg("bottle")}, weight=1.0)
+    l_bonus_lift_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8+0.16), "object_cfg": SceneEntityCfg("lid")}, weight=1.0)
 
-    object_goal_tracking = RewTerm(
+    b_object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.11, "command_name": "rbottle_pose"},
+        params={"std": 0.3, "minimal_height": (0.8+0.11), "command_name": "rbottle_pose", "robot_cfg" : SceneEntityCfg("robot_bottle"),  "object_cfg": SceneEntityCfg("bottle")},
         weight=16.0,
     )
-    object_goal_tracking_fine_grained = RewTerm(
+    b_object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.11, "command_name": "rbottle_pose"},
-        weight=5.0,
+        params={"std": 0.05, "minimal_height": (0.8+0.11), "command_name": "rbottle_pose", "robot_cfg" : SceneEntityCfg("robot_bottle"),  "object_cfg": SceneEntityCfg("bottle")},
+        weight=7.0,
+    )
+
+    l_object_goal_tracking = RewTerm(
+        func=mdp.object_goal_distance,
+        params={"std": 0.3, "minimal_height":(0.8+0.07), "command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")},
+        weight=16.0,
+    )
+    l_object_goal_tracking_fine_grained = RewTerm(
+        func=mdp.object_goal_distance,
+        params={"std": 0.05, "minimal_height": (0.8+0.07), "command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")},
+        weight=7.0,
     )
 
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
-    joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot_bottle")})
-    upright_penalty = RewTerm(func=mdp.object_uprightness, weight=-1e-4)
 
-    object_lin_vel_penalty = RewTerm(
+    b_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-5, params={"asset_cfg": SceneEntityCfg("robot_bottle")})
+    l_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-5, params={"asset_cfg": SceneEntityCfg("robot_lid")})
+    
+    #b_upright_penalty = RewTerm(func=mdp.object_uprightness, weight=-1e-4, params={"object_cfg": SceneEntityCfg("bottle")})
+    #l_upright_penalty = RewTerm(func=mdp.object_uprightness, weight=-1e-4, params={"object_cfg": SceneEntityCfg("lid")})
+
+    b_object_lin_vel_penalty = RewTerm(
         func=mdp.root_lin_vel_l2,
         params={"object_cfg": SceneEntityCfg("bottle")},
-        weight=-1e-4,
+        weight=-1e-3,
     )
-    object_ang_vel_penalty = RewTerm(
+    l_object_lin_vel_penalty = RewTerm(
+        func=mdp.root_lin_vel_l2,
+        params={"object_cfg": SceneEntityCfg("lid")},
+        weight=-1e-3,
+    )
+
+    b_object_ang_vel_penalty = RewTerm(
         func=mdp.root_ang_vel_l2,
         params={"object_cfg": SceneEntityCfg("bottle")},
-        weight=-1e-4,
+        weight=-1e-3,
     )
-    bonus_lift_penality = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.25}, weight=-1.0)
+    l_object_ang_vel_penalty = RewTerm(
+        func=mdp.root_ang_vel_l2,
+        params={"object_cfg": SceneEntityCfg("lid")},
+        weight=-1e-3,
+    )
+
+   # b_lift_penality = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.25, "object_cfg": SceneEntityCfg("bottle")}, weight=-1.0)
+   # l_lift_penality = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.25, "object_cfg": SceneEntityCfg("lid")}, weight=-1.0)
 
 
 @configclass
 class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    object_dropping = DoneTerm(
+    b_object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum,
-        params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("bottle")},
+        params={"minimum_height": 0.1, "asset_cfg": SceneEntityCfg("bottle")},
+    )
+    l_object_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum,
+        params={"minimum_height": 0.1, "asset_cfg": SceneEntityCfg("lid")},
     )
 
 
 @configclass
 class CurriculumCfg:
-    action_rate = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -1, "num_steps": 10000})
-    joint_vel = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.5, "num_steps": 10000})
-    upright_penalty = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "upright_penalty", "weight": -1, "num_steps": 11000})
+    action_rate = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight":  -1e-1, "num_steps": 10000})
+    #b_joint_vel = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "b_joint_vel", "weight": -1e-1, "num_steps": 10000})
+    #l_joint_vel = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "l_joint_vel", "weight":  -1e-1, "num_steps": 10000})
+    #b_upright_penalty = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "b_upright_penalty", "weight": -0.5, "num_steps": 11000})
+    #l_upright_penalty = CurrTerm(func=mdp.modify_reward_weight, params={"term_name": "l_upright_penalty", "weight": -0.5, "num_steps": 11000})
 
 
 @configclass
@@ -236,7 +299,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
                     max_depenetration_velocity=5.0,
                     disable_gravity=False,
                 ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+                mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
                 collision_props=sim_utils.CollisionPropertiesCfg(),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), roughness=1.0),
             ),
@@ -257,7 +320,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
                     max_depenetration_velocity=5.0,
                     disable_gravity=False,
                 ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
+                mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
                 collision_props=sim_utils.CollisionPropertiesCfg(),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.4, 1.0), roughness=1.0),
             ),
@@ -267,14 +330,14 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         )
 
 
-        self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.0]
+        self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.8]
         #self.scene.robot_bottle.init_state.rot = [-0.707, 0.0, 0.0, -0.707]
-        self.scene.robot_lid.init_state.pos    = [0.0,  1.0, 0.0]
+        self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.8]
 
         #self.scene.table_bottle.init_state.pos = [0.6, -0.6, 0.0]
 
-        self.scene.bottle.init_state.pos = [0.65, -0.2, 0.1]
-        self.scene.lid.init_state.pos = [0.65, 1.0, 0.1]
+        self.scene.bottle.init_state.pos = [0.5, 0.0, 0.8]
+        self.scene.lid.init_state.pos = [0.5, 1.5, 0.8]
 
         # End-effector frame transformers for both robots
         marker_cfg_bottle = FRAME_MARKER_CFG.copy()
@@ -306,7 +369,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             target_frames=[
                 FrameTransformerCfg.FrameCfg(
                     prim_path="{ENV_REGEX_NS}/RobotLid/panda_hand",
-                    name="ee_lid",
+                    name="ee_frame_lid",
                     offset=OffsetCfg(pos=[0.0, 0.0, 0.08]),
                 ),
             ],
