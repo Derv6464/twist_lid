@@ -25,6 +25,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 from isaaclab.markers.config import FRAME_MARKER_CFG
 
 from . import mdp
+from . import utils
 
 
 @configclass
@@ -37,8 +38,8 @@ class TwistLidSceneCfg(InteractiveSceneCfg):
     ee_frame_bottle: FrameTransformerCfg = MISSING
     ee_frame_lid: FrameTransformerCfg = MISSING
 
-    bottle: RigidObjectCfg | DeformableObjectCfg = MISSING
-    lid: RigidObjectCfg | DeformableObjectCfg = MISSING
+    #bottle: RigidObjectCfg | DeformableObjectCfg = MISSING
+    #lid: RigidObjectCfg | DeformableObjectCfg = MISSING
 
     table_bottle: AssetBaseCfg = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TableBottle",
@@ -67,6 +68,8 @@ class TwistLidSceneCfg(InteractiveSceneCfg):
         prim_path="/World/light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
+
+    scene : AssetBaseCfg = utils.BOTTLE_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
 
 @configclass
@@ -129,7 +132,7 @@ class ObservationsCfg:
         b_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_bottle")})
         l_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_lid")})
         
-        b_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_bottle"), "object_cfg":SceneEntityCfg("bottle")})
+        b_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_bottle"), "object_cfg":SceneEntityCfg("body")})
         l_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_lid"), "object_cfg":SceneEntityCfg("lid")})
 
         b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
@@ -154,7 +157,7 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
             "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("bottle", body_names="Bottle"),
+            "asset_cfg": SceneEntityCfg("body", body_names="body"),
         },
     )
 
@@ -164,7 +167,7 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
             "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("lid", body_names="Lid"),
+            "asset_cfg": SceneEntityCfg("lid", body_names="lid"),
         },
     )
 
@@ -172,31 +175,31 @@ class EventCfg:
 @configclass
 class RewardsCfg:
     # Reaching rewards (slightly reduced)
-    b_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.2, "object_cfg": SceneEntityCfg("bottle"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_bottle") }, weight=2.0)
+    b_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.2, "object_cfg": SceneEntityCfg("body"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_bottle") }, weight=2.0)
     l_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.2, "object_cfg": SceneEntityCfg("lid"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_lid") }, weight=2.0)
 
     # Lifting rewards (earlier)
-    b_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8 + 0.02), "object_cfg": SceneEntityCfg("bottle")}, weight=20.0)
+    b_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8 + 0.02), "object_cfg": SceneEntityCfg("body")}, weight=20.0)
     l_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": (0.8 + 0.02), "object_cfg": SceneEntityCfg("lid")}, weight=20.0)
 
-    b_object_goal_tracking = RewTerm(func=mdp.object_goal_distance, params={"std": 0.3, "minimal_height": (0.8+0.02), "command_name": "rbottle_pose", "robot_cfg" : SceneEntityCfg("robot_bottle"),  "object_cfg": SceneEntityCfg("bottle")}, weight=16.0)
+    b_object_goal_tracking = RewTerm(func=mdp.object_goal_distance, params={"std": 0.3, "minimal_height": (0.8+0.02), "command_name": "rbottle_pose", "robot_cfg" : SceneEntityCfg("robot_bottle"),  "object_cfg": SceneEntityCfg("body")}, weight=16.0)
     l_object_goal_tracking = RewTerm(func=mdp.object_goal_distance, params={"std": 0.3, "minimal_height":(0.8+0.02), "command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")}, weight=16.0)
 
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
     b_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-5, params={"asset_cfg": SceneEntityCfg("robot_bottle")})
     l_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-5, params={"asset_cfg": SceneEntityCfg("robot_lid")})
 
-    b_object_lin_vel_penalty = RewTerm(func=mdp.root_lin_vel_l2, params={"object_cfg": SceneEntityCfg("bottle")}, weight=-1e-3)
+    b_object_lin_vel_penalty = RewTerm(func=mdp.root_lin_vel_l2, params={"object_cfg": SceneEntityCfg("body")}, weight=-1e-3)
     l_object_lin_vel_penalty = RewTerm(func=mdp.root_lin_vel_l2, params={"object_cfg": SceneEntityCfg("lid")}, weight=-1e-3)
 
-    b_object_ang_vel_penalty = RewTerm(func=mdp.root_ang_vel_l2, params={"object_cfg": SceneEntityCfg("bottle")}, weight=-1e-3)
+    b_object_ang_vel_penalty = RewTerm(func=mdp.root_ang_vel_l2, params={"object_cfg": SceneEntityCfg("body")}, weight=-1e-3)
     l_object_ang_vel_penalty = RewTerm(func=mdp.root_ang_vel_l2, params={"object_cfg": SceneEntityCfg("lid")}, weight=-1e-3)
 
 
 @configclass
 class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    b_object_dropping = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.1, "asset_cfg": SceneEntityCfg("bottle")})
+    b_object_dropping = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.1, "asset_cfg": SceneEntityCfg("body")})
     l_object_dropping = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.1, "asset_cfg": SceneEntityCfg("lid")})
 
 
@@ -208,7 +211,7 @@ class CurriculumCfg:
 
 @configclass
 class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
-    scene: TwistLidSceneCfg = TwistLidSceneCfg(num_envs=4096, env_spacing=4.0)
+    scene: TwistLidSceneCfg = TwistLidSceneCfg(num_envs=1, env_spacing=3.0)
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
     commands: CommandsCfg = CommandsCfg()
@@ -218,50 +221,23 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
     curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self) -> None:
+        super().__post_init__()
+
         self.scene.robot_bottle = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotBottle")
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
         self.scene.robot = self.scene.robot_bottle
 
-        self.scene.bottle = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Bottle",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.03, height=0.2,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
-                    disable_gravity=False,
-                ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.15),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), roughness=1.0),
-            ),
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.0, 0.8], rot=[1.0, 0.0, 0.0, 0.0]),
-        )
+        utils.parse_usd_and_create_subassets(utils.BOTTLE_ONLY_PATH, self, specific_name_list=['body', 'lid'], postions={
+            'body': (0.5, 0.0, 1),
+            'lid' : (0.5, 2, 1)
+        })
+        stage = utils.get_stage(utils.BOTTLE_ONLY_PATH)
 
-        self.scene.lid = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Lid",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.02, height=0.04,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
-                    disable_gravity=False,
-                ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.03),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.4, 1.0), roughness=1.0),
-            ),
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 1.5, 0.8], rot=[1.0, 0.0, 0.0, 0.0]),
-        )
+        print(self.scene)
 
         self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.8]
         self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.8]
+
 
         # End-effector frames
         marker_cfg_bottle = FRAME_MARKER_CFG.copy()
@@ -309,3 +285,4 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
         self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
         self.sim.physx.friction_correlation_distance = 0.00625
+        self.sim.render.enable_translucency = True

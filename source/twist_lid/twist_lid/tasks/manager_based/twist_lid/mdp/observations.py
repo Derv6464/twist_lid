@@ -80,3 +80,27 @@ def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")) 
     obj = env.scene[object_cfg.name]
     ang_vel = obj.data.root_ang_vel_w[:, :3]  # angular velocity
     return torch.norm(ang_vel, dim=1)
+
+def bottle_position_in_lid_frame(
+    env: ManagerBasedRLEnv,
+    bottle_cfg: SceneEntityCfg = SceneEntityCfg("bottle"),
+    lid_cfg: SceneEntityCfg = SceneEntityCfg("lid"),
+) -> torch.Tensor:
+    """The position of the object in the robot's root frame."""
+    objectb: RigidObject = env.scene[bottle_cfg.name]
+    objectl: RigidObject = env.scene[lid_cfg.name]
+    object_pos_w = objectl.data.root_pos_w[:, :3]
+    object_pos_b, _ = subtract_frame_transforms(bottle_cfg.data.root_pos_w, bottle_cfg.data.root_quat_w, object_pos_w)
+    return object_pos_b
+
+def lid_position_in_bottle_root_frame(
+    env: ManagerBasedRLEnv,
+    bottle_cfg: SceneEntityCfg = SceneEntityCfg("bottle"),
+    lid_cfg: SceneEntityCfg = SceneEntityCfg("lid"),
+) -> torch.Tensor:
+    """The position of the object in the robot's root frame."""
+    objectb: RigidObject = env.scene[bottle_cfg.name]
+    objectl: RigidObject = env.scene[lid_cfg.name]
+    object_pos_w = objectb.data.root_pos_w[:, :3]
+    object_pos_b, _ = subtract_frame_transforms(objectl.data.root_pos_w, objectl.data.root_quat_w, object_pos_w)
+    return object_pos_b

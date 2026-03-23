@@ -25,6 +25,8 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 from isaaclab.markers.config import FRAME_MARKER_CFG
 
 from . import mdp
+from . import utils
+
 
 
 @configclass
@@ -222,43 +224,22 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
         self.scene.robot = self.scene.robot_bottle
 
+        utils.make_isacc_compatible()
+
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Bottle",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.03, height=0.2,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
-                    disable_gravity=False,
-                ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.15),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), roughness=1.0),
-            ),
+            spawn=sim_utils.UsdFileCfg(
+                usd_path='/home/dgargan2/twist_lid/assets/bottle.usdz'),
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.0, 0.8], rot=[1.0, 0.0, 0.0, 0.0]),
         )
 
         self.scene.lid = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Lid",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.02, height=0.04,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
-                    disable_gravity=False,
-                ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.03),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.4, 1.0), roughness=1.0),
-            ),
+            spawn=sim_utils.UsdFileCfg(
+                usd_path='/home/dgargan2/twist_lid/assets/cap.usdz'),
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 1.5, 0.8], rot=[1.0, 0.0, 0.0, 0.0]),
         )
+        
 
         self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.8]
         self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.8]
