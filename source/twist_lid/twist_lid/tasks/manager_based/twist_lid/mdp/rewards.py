@@ -9,10 +9,12 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from isaaclab.assets import RigidObject
+
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformer
 from isaaclab.utils.math import combine_frame_transforms
+from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.assets import RigidObject, Articulation
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv

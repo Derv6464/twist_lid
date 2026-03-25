@@ -198,6 +198,7 @@ class RewardsCfg:
         weight=5.0,
     )
 
+
     b_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot_bottle")})
     l_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot_lid")})
 
@@ -249,7 +250,6 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         self.scene.robot_bottle = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot_Bottle")
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
-        #self.scene.robot = self.scene.robot_bottle
 
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/bottle",
@@ -270,6 +270,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
                 ),
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.2, 1.5, 0.0], rot=[1.0, 0.0, 0.0, 0.0]),
         )
+
 
         self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.0]
         self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.0]
@@ -295,7 +296,6 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
                 ),
             ],
         )
-
 
         self.scene.ee_frame_lid = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/RobotLid/panda_link0",

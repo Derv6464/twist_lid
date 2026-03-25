@@ -18,7 +18,7 @@ BOTTLE_CFG = AssetBaseCfg(
     )
 )
 
-def make_isacc_compatible():
+def make_rigid_body():
     usd_path = "/home/dgargan2/twist_lid/assets/bottle.usdc"
 
     stage = Usd.Stage.Open(usd_path)
@@ -49,6 +49,41 @@ def make_isacc_compatible():
             sdf_api.CreateSdfMarginAttr(0.002)
 
     stage.GetRootLayer().Save()
+
+def make_articilate_body():
+    usd_path = "/home/dgargan2/twist_lid/assets/cap.usdc"
+
+    stage = Usd.Stage.Open(usd_path)
+
+    for prim in stage.Traverse():
+
+        name = prim.GetName().lower()
+
+        # apply physics to the bottle root
+        if "cap" in name:
+            print("Applying art body:", prim.GetPath())
+
+            UsdPhysics.ArticulationRootAPI.Apply(prim)
+            UsdPhysics.CollisionAPI.Apply(prim)
+            PhysxSchema.PhysxRigidBodyAPI.Apply(prim)
+
+        # apply SDF collider to the mesh
+        if prim.GetTypeName() == "Mesh":
+            print("Applying SDF collider:", prim.GetPath())
+
+            collision_api = UsdPhysics.CollisionAPI.Apply(prim)
+
+            meshCollision = UsdPhysics.MeshCollisionAPI.Apply(prim)
+            meshCollision.CreateApproximationAttr(PhysxSchema.Tokens.sdf)
+
+            sdf_api = PhysxSchema.PhysxSDFMeshCollisionAPI.Apply(prim)
+            sdf_api.CreateSdfResolutionAttr(256)   
+            sdf_api.CreateSdfMarginAttr(0.002)
+
+    stage.GetRootLayer().Save()
+
+
+
 
 def make_sdf_collision(sdf_prim_path):
     stage = omni.usd.get_context().get_stage()
