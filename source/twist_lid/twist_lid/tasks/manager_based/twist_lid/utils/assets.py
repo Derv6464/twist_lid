@@ -1,5 +1,7 @@
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
+import omni.usd
+from pxr import Usd, UsdPhysics, PhysxSchema
 
 KITCHEN_W_BOTTLE_PATH = '/home/dgargan2/twist_lid/assets/Lightwheel_OpenSource/Locomotion/KitchenRoom/Collected_waterbottle_7/waterbottle_7.usd'
 BOTTLE_ONLY_PATH = '/home/dgargan2/bottle_open/assets/bottle.usda'
@@ -17,9 +19,7 @@ BOTTLE_CFG = AssetBaseCfg(
 )
 
 def make_isacc_compatible():
-    from pxr import Usd, UsdPhysics, PhysxSchema
-
-    usd_path = "/home/dgargan2/twist_lid/assets/bottle.usdz"
+    usd_path = "/home/dgargan2/twist_lid/assets/bottle.usdc"
 
     stage = Usd.Stage.Open(usd_path)
 
@@ -28,7 +28,7 @@ def make_isacc_compatible():
         name = prim.GetName().lower()
 
         # apply physics to the bottle root
-        if "bottle" in name:
+        if "cap" in name:
             print("Applying rigid body:", prim.GetPath())
 
             UsdPhysics.RigidBodyAPI.Apply(prim)
@@ -40,12 +40,24 @@ def make_isacc_compatible():
             print("Applying SDF collider:", prim.GetPath())
 
             collision_api = UsdPhysics.CollisionAPI.Apply(prim)
-            sdf_api = PhysxSchema.PhysxSDFMeshCollisionAPI.Apply(prim)
 
-            # enable SDF collision
-            sdf_api.CreateSdfResolutionAttr(256)   # higher = more accurate
-            sdf_api.CreateSdfMarginAttr(0.002)     # small safety margin
+            meshCollision = UsdPhysics.MeshCollisionAPI.Apply(prim)
+            meshCollision.CreateApproximationAttr(PhysxSchema.Tokens.sdf)
+
+            sdf_api = PhysxSchema.PhysxSDFMeshCollisionAPI.Apply(prim)
+            sdf_api.CreateSdfResolutionAttr(256)   
+            sdf_api.CreateSdfMarginAttr(0.002)
 
     stage.GetRootLayer().Save()
 
-    print("Done - object is now rigid body with SDF collision")
+def make_sdf_collision(sdf_prim_path):
+    stage = omni.usd.get_context().get_stage()
+
+    sdf_prim = stage.GetPrimAtPath(sdf_prim_path)
+    UsdPhysics.CollisionAPI.Apply(sdf_prim)
+
+    meshCollision = UsdPhysics.MeshCollisionAPI.Apply(sdf_prim)
+    meshCollision.CreateApproximationAttr(PhysxSchema.Tokens.sdf)
+
+    sdfMeshCollision = PhysxSchema.PhysxSDFMeshCollisionAPI.Apply(sdf_prim)
+    sdfMeshCollision.CreateSdfResolutionAttr(300)
