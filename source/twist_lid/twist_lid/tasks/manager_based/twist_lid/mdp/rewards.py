@@ -25,6 +25,7 @@ def object_is_lifted(
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
+    #print(f"{object_cfg.name} is at {object.data.root_pos_w[:, 2]}")
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 
@@ -68,3 +69,27 @@ def object_goal_distance(
     distance = torch.norm(des_pos_w - object.data.root_pos_w, dim=1)
     # rewarded if the object is lifted above the threshold
     return (object.data.root_pos_w[:, 2] > minimal_height) * (1 - torch.tanh(distance / std))
+
+def object_gripper_center_distance(
+    env,
+    *,
+    object_cfg: SceneEntityCfg,
+    ee_frame_cfg: SceneEntityCfg,
+    std: float = 0.1,
+):
+    """Reward based on distance between object center and gripper midpoint."""
+
+    # Object position in world frame
+    object_pos = env.scene[object_cfg.name].data.root_pos_w  # (num_envs, 3)
+
+    # End-effector (gripper midpoint) position in world frame
+    ee_pos = env.scene[ee_frame_cfg.name].data.target_pos_w[..., 0, :]  
+    # target_pos_w shape: (num_envs, num_frames, 3)
+
+    # Euclidean distance
+    dist = torch.norm(object_pos - ee_pos, dim=-1)
+
+    # Gaussian-shaped reward
+    reward = torch.exp(-(dist**2) / (2 * std**2))
+
+    return reward
