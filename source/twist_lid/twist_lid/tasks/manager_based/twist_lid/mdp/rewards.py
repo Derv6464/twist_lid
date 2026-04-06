@@ -93,3 +93,77 @@ def object_gripper_center_distance(
     reward = torch.exp(-(dist**2) / (2 * std**2))
 
     return reward
+
+
+def object_distance_to_middle_table(
+    env,
+    *,
+    object_cfg,
+    table_offset=(0.0, 0.75, 0.0),
+    height_offset: float = 0.1,
+    std: float = 0.25,
+):
+    import torch
+
+    # Bottle world positions (num_envs, 3)
+    obj_pos = env.scene[object_cfg.name].data.root_pos_w
+
+    env_origins = env.scene.env_origins
+
+    table_offset = torch.tensor(
+        table_offset,
+        device=obj_pos.device,
+        dtype=obj_pos.dtype,
+    )
+
+    target_pos = env_origins + table_offset
+    target_pos[:, 2] += height_offset
+
+    # Distance
+    dist = torch.norm(obj_pos - target_pos, dim=-1)
+
+    # Gaussian reward (nearer = more reward)
+    reward = torch.exp(-(dist ** 2) / (2 * std ** 2))
+
+    return reward
+
+
+def object_upright_reward(
+    env,
+    object_cfg: SceneEntityCfg,
+    std: float = 0.2,
+):
+    """Reward for keeping an object upright (aligned with world Z axis)."""
+
+    # Object orientation as quaternion (w, x, y, z)
+    quat = env.scene[object_cfg.name].data.root_quat_w  # (num_envs, 4)
+
+    # World Z axis
+    world_z = torch.tensor(
+        [0.0, 0.0, 1.0],
+        device=quat.device,
+        dtype=quat.dtype,
+    )
+
+    # Compute object's local Z axis expressed in world frame
+    # Using quaternion rotation: z_obj = q * [0,0,1] * q_conj
+    z_obj = torch.stack(
+        [
+            2 * (quat[:, 1] * quat[:, 3] + quat[:, 0] * quat[:, 2]),
+            2 * (quat[:, 2] * quat[:, 3] - quat[:, 0] * quat[:, 1]),
+            1 - 2 * (quat[:, 1] ** 2 + quat[:, 2] ** 2),
+        ],
+        dim=-1,
+    )
+
+    # Cosine of tilt angle
+    alignment = torch.clamp(
+        (z_obj * world_z).sum(dim=-1), -1.0, 1.0
+    )
+
+    
+    reward = torch.exp(-((1.0 - alignment) ** 2) / (2 * std**2))
+
+    return reward
+
+
