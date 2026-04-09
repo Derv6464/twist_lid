@@ -75,16 +75,16 @@ class TwistLidSceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command terms for robots (pose targets at the gripper)."""
 
-    #rlid_pose = mdp.UniformPoseCommandCfg(
-    #    asset_name="robot_lid",
-    #    body_name="panda_hand",
-    #    resampling_time_range=(5.0, 5.0),
-    #    debug_vis=True,
-    #    ranges=mdp.UniformPoseCommandCfg.Ranges(
-    #        pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5),
-    #        roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-    #    ),
-    #)
+    rlid_pose = mdp.UniformPoseCommandCfg(
+        asset_name="robot_lid",
+        body_name="panda_hand",
+        resampling_time_range=(5.0, 5.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5),
+            roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ),
+    )
 
     rbottle_pose =  mdp.UniformPoseCommandCfg(
         asset_name="robot_bottle",
@@ -103,9 +103,9 @@ class ActionsCfg:
     arm_bottle = mdp.JointPositionActionCfg(
         asset_name="robot_bottle", joint_names=["panda_joint.*"], scale=0.5, use_default_offset=True
     )
-    #arm_lid = mdp.JointPositionActionCfg(
-    #    asset_name="robot_lid", joint_names=["panda_joint.*"], scale=0.5, use_default_offset=True
-    #)
+    arm_lid = mdp.JointPositionActionCfg(
+        asset_name="robot_lid", joint_names=["panda_joint.*"], scale=0.5, use_default_offset=True
+    )
 
     gripper_bottle = mdp.BinaryJointPositionActionCfg(
         asset_name="robot_bottle",
@@ -114,12 +114,12 @@ class ActionsCfg:
         close_command_expr={"panda_finger_.*": 0.0},
     )
 
-    #gripper_lid = mdp.BinaryJointPositionActionCfg(
-    #    asset_name="robot_lid",
-    #    joint_names=["panda_finger.*"],
-    #    open_command_expr={"panda_finger_.*": 0.09},
-    #    close_command_expr={"panda_finger_.*": 0.0},
-    #)
+    gripper_lid = mdp.BinaryJointPositionActionCfg(
+        asset_name="robot_lid",
+        joint_names=["panda_finger.*"],
+        open_command_expr={"panda_finger_.*": 0.05},
+        close_command_expr={"panda_finger_.*": 0.0},
+    )
 
 
 @configclass
@@ -128,16 +128,16 @@ class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
         b_joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg" :SceneEntityCfg("robot_bottle")})
-        #l_joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg" :SceneEntityCfg("robot_lid") })
+        l_joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg" :SceneEntityCfg("robot_lid") })
 
         b_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_bottle")})
-        #l_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_lid")})
+        l_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg":SceneEntityCfg("robot_lid")})
         
         b_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_bottle"), "object_cfg":SceneEntityCfg("bottle")})
-        #l_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_lid"), "object_cfg":SceneEntityCfg("lid")})
+        l_object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"robot_cfg":SceneEntityCfg("robot_lid"), "object_cfg":SceneEntityCfg("lid")})
 
         b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
-        #l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose"})
+        l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose"})
         
         actions = ObsTerm(func=mdp.last_action)
        
@@ -178,7 +178,7 @@ class EventCfg:
 class RewardsCfg:
     # Reaching rewards 
     b_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1, "object_cfg": SceneEntityCfg("bottle"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_bottle") }, weight=1.0)
-    #l_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.08, "object_cfg": SceneEntityCfg("lid"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_lid") }, weight=1.0)
+    l_reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.08, "object_cfg": SceneEntityCfg("lid"), "ee_frame_cfg" : SceneEntityCfg("ee_frame_lid") }, weight=1.0)
 
     #bottle reaching point
     
@@ -205,25 +205,25 @@ class RewardsCfg:
 
     # Lifting rewards
     b_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.3, "object_cfg": SceneEntityCfg("bottle")}, weight=25.0)
-    #l_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.05, "object_cfg": SceneEntityCfg("lid")}, weight=25.0)
+    l_lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.05, "object_cfg": SceneEntityCfg("lid")}, weight=25.0)
 
     b_object_goal_tracking = RewTerm(func=mdp.object_goal_distance, params={"std": 0.2, "minimal_height": 0.3, "command_name": "rbottle_pose", "robot_cfg" : SceneEntityCfg("robot_bottle"),  "object_cfg": SceneEntityCfg("bottle")}, weight=16.0)
-    #l_object_goal_tracking = RewTerm(func=mdp.object_goal_distance, params={"std": 0.2, "minimal_height": 0.05, "command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")}, weight=16.0)
+    l_object_goal_tracking = RewTerm(func=mdp.object_goal_distance, params={"std": 0.2, "minimal_height": 0.05, "command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")}, weight=16.0)
     
     b_object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.05, "minimal_height": 0.3,"command_name": "rbottle_pose", "robot_cfg" : SceneEntityCfg("robot_bottle"),  "object_cfg": SceneEntityCfg("bottle")},
         weight=5.0,
     )
-    #l_object_goal_tracking_fine_grained = RewTerm(
-    #    func=mdp.object_goal_distance,
-    #    params={"std": 0.01, "minimal_height":  0.05,"command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")},
-    #    weight=5.0,
-    #)
+    l_object_goal_tracking_fine_grained = RewTerm(
+        func=mdp.object_goal_distance,
+        params={"std": 0.01, "minimal_height":  0.05,"command_name": "rlid_pose", "robot_cfg" : SceneEntityCfg("robot_lid"),  "object_cfg": SceneEntityCfg("lid")},
+        weight=5.0,
+    )
 
 
     b_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot_bottle")})
-    #l_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot_lid")})
+    l_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot_lid")})
 
     #b_object_lin_vel_penalty = RewTerm(func=mdp.root_lin_vel_l2, params={"object_cfg": SceneEntityCfg("bottle")}, weight=-1e-3)
     #l_object_lin_vel_penalty = RewTerm(func=mdp.root_lin_vel_l2, params={"object_cfg": SceneEntityCfg("lid")}, weight=-1e-3)
@@ -272,7 +272,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
 
     def __post_init__(self) -> None:
         self.scene.robot_bottle = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot_Bottle")
-        self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
+        #self.scene.robot_lid = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/RobotLid")
 
         self.scene.bottle = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/bottle",
@@ -317,16 +317,16 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         )
      
         self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.0]
-        self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.0]
+        #self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.0]#
 
         # End-effector frames
         marker_cfg_bottle = FRAME_MARKER_CFG.copy()
         marker_cfg_bottle.markers["frame"].scale = (0.1, 0.1, 0.1)
-        marker_cfg_lid = FRAME_MARKER_CFG.copy()
-        marker_cfg_lid.markers["frame"].scale = (0.1, 0.1, 0.1)
+        #marker_cfg_lid = FRAME_MARKER_CFG.copy()
+        #marker_cfg_lid.markers["frame"].scale = (0.1, 0.1, 0.1)
 
         marker_cfg_bottle.prim_path = "{ENV_REGEX_NS}/Visuals/FrameBottle"
-        marker_cfg_lid.prim_path    = "{ENV_REGEX_NS}/Visuals/FrameLid"
+        #marker_cfg_lid.prim_path    = "{ENV_REGEX_NS}/Visuals/FrameLid"
 
         self.scene.ee_frame_bottle = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot_Bottle/panda_link0",
@@ -341,18 +341,18 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             ],
         )
 
-        self.scene.ee_frame_lid = FrameTransformerCfg(
-            prim_path="{ENV_REGEX_NS}/RobotLid/panda_link0",
-            debug_vis=False,
-            visualizer_cfg=marker_cfg_lid,
-            target_frames=[
-                FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/RobotLid/panda_hand",
-                    name="ee_frame_lid",
-                    offset=OffsetCfg(pos=[0.0, 0.0, 0.1034]),
-                ),
-            ],
-        )
+        #self.scene.ee_frame_lid = FrameTransformerCfg(
+        #    prim_path="{ENV_REGEX_NS}/RobotLid/panda_link0",
+        #    debug_vis=False,
+        #    visualizer_cfg=marker_cfg_lid,
+        #    target_frames=[
+        #        FrameTransformerCfg.FrameCfg(
+        #            prim_path="{ENV_REGEX_NS}/RobotLid/panda_hand",
+        #            name="ee_frame_lid",
+        #            offset=OffsetCfg(pos=[0.0, 0.0, 0.1034]),
+        #        ),
+        #    ],
+        #)
 
         # General sim settings
         self.decimation = 2

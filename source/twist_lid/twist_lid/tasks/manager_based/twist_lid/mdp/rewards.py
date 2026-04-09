@@ -23,10 +23,23 @@ if TYPE_CHECKING:
 def object_is_lifted(
     env: ManagerBasedRLEnv, minimal_height: float, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")
 ) -> torch.Tensor:
-    """Reward the agent for lifting the object above the minimal height."""
+    """Reward the agent for lifting the object above the minimal height.
+
+    Returns a smooth reward that increases as the object gets closer to the target height,
+    with a bonus when it exceeds the minimal height.
+    """
     object: RigidObject = env.scene[object_cfg.name]
-    #print(f"{object_cfg.name} is at {object.data.root_pos_w[:, 2]}")
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
+    current_height = object.data.root_pos_w[:, 2]
+
+    # Smooth reward that increases with height (gives gradient even below threshold)
+    # Normalize so that reaching minimal_height gives ~0.5, and going higher gives more
+    height_progress = torch.tanh((current_height - 0.0) / (minimal_height * 0.5))
+
+    # Binary bonus when above threshold
+    above_threshold = (current_height > minimal_height).float()
+
+    # Combined: smooth progress + bonus
+    return height_progress + above_threshold
 
 
 def object_ee_distance(
