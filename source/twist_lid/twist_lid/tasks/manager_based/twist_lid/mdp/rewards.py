@@ -179,4 +179,98 @@ def object_upright_reward(
 
     return reward
 
+def ee_goal_distance(
+    env,
+    command_name: str,
+    robot_cfg: SceneEntityCfg,
+    std: float = 0.1,
+):
+    """Distance between EE and commanded meeting point."""
 
+    robot: Articulation = env.scene[robot_cfg.name]
+    command = env.command_manager.get_command(command_name)
+
+    ee_pos = robot.data.body_pos_w[:, robot.find_bodies("panda_hand")[0][0]]
+    target_pos = command[:, :3]
+
+    dist = torch.norm(ee_pos - target_pos, dim=-1)
+
+    return 1 - torch.tanh(dist / std)
+
+def lid_bottle_position_error(
+    env,
+    *,
+    lid_cfg: SceneEntityCfg,
+    bottle_cfg: SceneEntityCfg,
+    std: float = 0.05,
+):
+    """Reward for lid position aligning with bottle."""
+
+    lid_pos = env.scene[lid_cfg.name].data.root_pos_w
+    bottle_pos = env.scene[bottle_cfg.name].data.root_pos_w
+
+    dist = torch.norm(lid_pos - bottle_pos, dim=-1)
+
+    return torch.exp(-(dist**2) / (2 * std**2))
+
+def lid_bottle_orientation_error(
+    env,
+    *,
+    lid_cfg: SceneEntityCfg,
+    bottle_cfg: SceneEntityCfg,
+    std: float = 0.2,
+):
+    """Reward for aligning lid orientation with bottle."""
+
+    from isaaclab.utils.math import quat_inv, quat_mul
+
+    q1 = env.scene[lid_cfg.name].data.root_quat_w
+    q2 = env.scene[bottle_cfg.name].data.root_quat_w
+
+    q_diff = quat_mul(quat_inv(q1), q2)
+
+    angle = 2 * torch.acos(torch.clamp(q_diff[:, 0], -1.0, 1.0))
+
+    return torch.exp(-(angle**2) / (2 * std**2))
+
+def is_aligned_and_close(
+    env,
+    *,
+    lid_cfg: SceneEntityCfg,
+    bottle_cfg: SceneEntityCfg,
+    pos_threshold: float,
+    rot_threshold: float,
+):
+    """Binary success signal."""
+
+    from isaaclab.utils.math import quat_inv, quat_mul
+
+    lid = env.scene[lid_cfg.name]
+    bottle = env.scene[bottle_cfg.name]
+
+    pos_error = torch.norm(lid.data.root_pos_w - bottle.data.root_pos_w, dim=-1)
+
+    q_diff = quat_mul(quat_inv(lid.data.root_quat_w), bottle.data.root_quat_w)
+    rot_error = 2 * torch.acos(torch.clamp(q_diff[:, 0], -1.0, 1.0))
+
+    success = (pos_error < pos_threshold) & (rot_error < rot_threshold)
+
+    return success.float()
+
+def lid_bottle_relative_pose(
+    env,
+    *,
+    lid_cfg: SceneEntityCfg,
+    bottle_cfg: SceneEntityCfg,
+):
+    """Relative pose of lid in bottle frame."""
+
+    from isaaclab.utils.math import quat_inv, quat_mul
+
+    lid = env.scene[lid_cfg.name]
+    bottle = env.scene[bottle_cfg.name]
+
+    pos_rel = lid.data.root_pos_w - bottle.data.root_pos_w
+    quat_rel = quat_mul(quat_inv(bottle.data.root_quat_w), lid.data.root_quat_w)
+
+    return torch.cat([pos_rel, quat_rel], dim=-1)
