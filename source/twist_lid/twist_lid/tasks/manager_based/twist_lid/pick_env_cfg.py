@@ -114,23 +114,12 @@ class ActionsCfg:
 class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
-        b_joint_pos = ObsTerm(
-            func=mdp.joint_pos_rel,
-            params={"asset_cfg": SceneEntityCfg("robot_bottle")}
-        )
-        b_joint_vel = ObsTerm(
-            func=mdp.joint_vel_rel,
-            params={"asset_cfg": SceneEntityCfg("robot_bottle")}
-        )
+        # bottle robot obs
+        b_joint_pos = ObsTerm(func=mdp.joint_pos_rel,params={"asset_cfg": SceneEntityCfg("robot_bottle")})
+        b_joint_vel = ObsTerm(func=mdp.joint_vel_rel,params={"asset_cfg": SceneEntityCfg("robot_bottle")})
 
-        l_joint_pos = ObsTerm(
-            func=mdp.joint_pos_rel,
-            params={"asset_cfg": SceneEntityCfg("robot_lid")}
-        )
-        l_joint_vel = ObsTerm(
-            func=mdp.joint_vel_rel,
-            params={"asset_cfg": SceneEntityCfg("robot_lid")}
-        )
+        l_joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("robot_lid")})
+        l_joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("robot_lid")})
 
         b_object_position = ObsTerm(
             func=mdp.object_position_in_robot_root_frame,
@@ -147,18 +136,8 @@ class ObservationsCfg:
             }
         )
 
-        lid_bottle_rel_pose = ObsTerm(
-            func=mdp.lid_bottle_relative_pose,
-            params={
-                "lid_cfg": SceneEntityCfg("lid"),
-                "bottle_cfg": SceneEntityCfg("bottle"),
-            }
-        )
-
-        b_target_object_position = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "rbottle_pose"}
-        )
+        b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
+        l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose"})
 
         actions = ObsTerm(func=mdp.last_action)
 
@@ -194,8 +173,7 @@ class EventCfg:
 
 @configclass
 class RewardsCfg:
-    b_reaching_object = RewTerm(
-        func=mdp.object_ee_distance,
+    b_reaching_object = RewTerm(func=mdp.object_ee_distance,
         params={
             "std": 0.1,
             "object_cfg": SceneEntityCfg("bottle"),
@@ -204,28 +182,26 @@ class RewardsCfg:
         weight=10.0, 
     )
 
-    b_gripper_centering = RewTerm(
-        func=mdp.object_gripper_center_distance,
+    l_reaching_object = RewTerm(
+        func=mdp.object_ee_distance,
         params={
-            "object_cfg": SceneEntityCfg("bottle"),
-            "ee_frame_cfg": SceneEntityCfg("ee_frame_bottle"),
-            "std": 0.05,  
+            "std": 0.1,
+            "object_cfg": SceneEntityCfg("lid"),
+            "ee_frame_cfg": SceneEntityCfg("ee_frame_lid"),
         },
-        weight=5.0,
+        weight=10.0,  
     )
 
     b_lifting_object = RewTerm(
         func=mdp.object_is_lifted,
-        params={"minimal_height": 0.10, "object_cfg": SceneEntityCfg("bottle")},
+        params={"minimal_height": 0.15, "object_cfg": SceneEntityCfg("bottle")},
         weight=20.0, 
     )
-    bottle_stability = RewTerm(
-        func=mdp.object_upright_reward,
-        params={
-            "object_cfg": SceneEntityCfg("bottle"),
-            "std": 0.15,  
-        },
-        weight=3.0, 
+
+    l_lifting_object = RewTerm(
+        func=mdp.object_is_lifted,
+        params={"minimal_height": 0.02, "object_cfg": SceneEntityCfg("lid")},
+        weight=20.0,
     )
 
     b_object_goal_tracking = RewTerm(
@@ -236,6 +212,18 @@ class RewardsCfg:
             "command_name": "rbottle_pose",
             "robot_cfg": SceneEntityCfg("robot_bottle"),
             "object_cfg": SceneEntityCfg("bottle"),
+        },
+        weight=10.0,
+    )
+
+    l_object_goal_tracking = RewTerm(
+        func=mdp.object_goal_distance,
+        params={
+            "std": 0.2,
+            "minimal_height": 0.05, 
+            "command_name": "rlid_pose",
+            "robot_cfg": SceneEntityCfg("robot_lid"),
+            "object_cfg": SceneEntityCfg("lid"),
         },
         weight=10.0,
     )
@@ -252,30 +240,16 @@ class RewardsCfg:
         weight=5.0,
     )
 
-    l_reaching_object = RewTerm(
-        func=mdp.object_ee_distance,
+    l_object_goal_tracking = RewTerm(
+        func=mdp.object_goal_distance,
         params={
-            "std": 0.1,
+            "std": 0.05,
+            "minimal_height": 0.05, 
+            "command_name": "rlid_pose",
+            "robot_cfg": SceneEntityCfg("robot_lid"),
             "object_cfg": SceneEntityCfg("lid"),
-            "ee_frame_cfg": SceneEntityCfg("ee_frame_lid"),
         },
-        weight=10.0,  
-    )
-
-    l_gripper_centering = RewTerm(
-        func=mdp.object_gripper_center_distance,
-        params={
-            "object_cfg": SceneEntityCfg("lid"),
-            "ee_frame_cfg": SceneEntityCfg("ee_frame_lid"),
-            "std": 0.03,  
-        },
-        weight=8.0,  
-    )
-
-    l_lifting_object = RewTerm(
-        func=mdp.object_is_lifted,
-        params={"minimal_height": 0.02, "object_cfg": SceneEntityCfg("lid")},
-        weight=20.0,
+        weight=5.0,
     )
 
     b_joint_vel = RewTerm(
@@ -301,24 +275,24 @@ class TerminationsCfg:
 class CurriculumCfg:
     b_lifting_ramp = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "b_lifting_object", "weight": 30.0, "num_steps": 8000}
+        params={"term_name": "b_lifting_object", "weight": 30.0, "num_steps": 10000}
     )
     l_lifting_ramp = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "l_lifting_object", "weight": 30.0, "num_steps": 8000}
+        params={"term_name": "l_lifting_object", "weight": 30.0, "num_steps": 10000}
     )
 
     action_rate_ramp = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate", "weight": -1e-3, "num_steps": 8000}
+        params={"term_name": "action_rate", "weight": -1e-2, "num_steps": 20000}
     )
     b_joint_vel = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "b_joint_vel", "weight": -1e-3, "num_steps": 8000}
+        params={"term_name": "b_joint_vel", "weight": -1e-2, "num_steps": 20000}
     )
     l_joint_vel = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "l_joint_vel", "weight": -1e-3, "num_steps": 8000}
+        params={"term_name": "l_joint_vel", "weight": -1e-2, "num_steps": 20000}
     )
 
 
