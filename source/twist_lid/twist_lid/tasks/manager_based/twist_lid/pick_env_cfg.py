@@ -345,7 +345,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             spawn=sim_utils.UsdFileCfg(
                 usd_path='/home/dgargan2/twist_lid/assets/bottle.usdc',
                 activate_contact_sensors=True,
-                scale= (1.5, 1.5, 1.5), 
+                scale= (1.2, 1.2, 1.2), 
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     disable_gravity=False,
                     max_depenetration_velocity=5.0,
@@ -371,7 +371,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             prim_path="{ENV_REGEX_NS}/lid",
             spawn=sim_utils.UsdFileCfg(
                 usd_path='/home/dgargan2/twist_lid/assets/cap_nomaterial.usdc',
-                scale= (1.5, 1.5, 1.5), 
+                scale= (1.2, 1.2, 1.2), 
                 activate_contact_sensors=True,
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     disable_gravity=False,
