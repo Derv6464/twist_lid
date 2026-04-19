@@ -80,6 +80,28 @@ class CommandsCfg:
         debug_vis=True,
     )
 
+    rbottle_pose = mdp.UniformPoseCommandCfg(
+        asset_name="robot_bottle",
+        body_name="panda_hand",
+        resampling_time_range=(5.0, 5.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.3, 0.5), pos_y=(-0.2, 0.2), pos_z=(0.15, 0.35),
+            roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ),
+    )
+
+    rlid_pose = mdp.UniformPoseCommandCfg(
+        asset_name="robot_lid",
+        body_name="panda_hand",
+        resampling_time_range=(5.0, 5.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.3, 0.5), pos_y=(-0.2, 0.2), pos_z=(0.15, 0.35),
+            roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ),
+    )
+
 @configclass
 class ActionsCfg:
     arm_bottle = mdp.JointPositionActionCfg(
@@ -132,10 +154,10 @@ class ObservationsCfg:
             }
         )
         l_object_position = ObsTerm(
-            func=mdp.lid_position_in_robot_root_frame,
+            func=mdp.object_position_in_robot_root_frame,
             params={
                 "robot_cfg": SceneEntityCfg("robot_lid"),
-                "lid_cfg": SceneEntityCfg("lid"),
+                "object_cfg": SceneEntityCfg("lid"),
             }
         )
 
@@ -180,11 +202,9 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.02, 0.02), "y": (-0.15, 0.15), "z": (0.0, 0.0)},
             "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("lid", body_names="lid"),
+            "asset_cfg": SceneEntityCfg("lid", body_names="PCO28_1810_PET_bottle_cap_ind"),
         },
     )
-
-    reset_screw = EventTerm(func=mdp.reset_screw_state, mode="reset")
 
 @configclass
 class RewardsCfg:
@@ -259,14 +279,6 @@ class TerminationsCfg:
 
 @configclass
 class CurriculumCfg:
-    b_lifting_ramp = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "b_lifting_object", "weight": 30.0, "num_steps": 8000}
-    )
-    l_lifting_ramp = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "l_lifting_object", "weight": 30.0, "num_steps": 8000}
-    )
 
     action_rate_ramp = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -313,7 +325,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             "panda_joint5": 0.0,
             "panda_joint6": 2.8,       
             "panda_joint7": 0.785,     
-            "panda_finger_joint.*": 0.06, 
+            "panda_finger_joint.*": 0.04, 
         }
         self.scene.robot_lid.init_state.joint_pos = {
             "panda_joint1": 0.0,
@@ -348,7 +360,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
                 collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
             ),
             init_state=ArticulationCfg.InitialStateCfg(
-                pos=(0.0, 0.0, 0.1034), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+                pos=(0.4, 0.0, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
             ),
             actuators={},
         )
@@ -356,7 +368,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.lid = ArticulationCfg(
             prim_path="{ENV_REGEX_NS}/lid",
             spawn=sim_utils.UsdFileCfg(
-                usd_path='/home/dgargan2/twist_lid/assets/cap.usdc',
+                usd_path='/home/dgargan2/twist_lid/assets/cap_nomaterial.usdc',
                 scale= (1.5, 1.5, 1.5), 
                 activate_contact_sensors=True,
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -375,7 +387,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
                 collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
             ),
             init_state=ArticulationCfg.InitialStateCfg(
-                pos=(0.1, 1.4, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+                pos=(0.4, 1.4, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
             ),
             actuators={},
         )

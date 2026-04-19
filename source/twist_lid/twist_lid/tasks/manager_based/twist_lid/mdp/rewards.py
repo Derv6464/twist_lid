@@ -33,7 +33,7 @@ def object_is_lifted(
 
     # Smooth reward that increases with height (gives gradient even below threshold)
     # Normalize so that reaching minimal_height gives ~0.5, and going higher gives more
-    height_progress = torch.tanh((current_height - 0.0) / (minimal_height * 0.5))
+    height_progress = torch.tanh(torch.clamp(current_height, min=0.0) / (minimal_height * 0.5))
 
     # Binary bonus when above threshold
     above_threshold = (current_height > minimal_height).float()
