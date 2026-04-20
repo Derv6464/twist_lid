@@ -240,7 +240,7 @@ class RewardsCfg:
         weight=5.0,
     )
 
-    l_object_goal_tracking = RewTerm(
+    l_object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
         params={
             "std": 0.05,
@@ -273,26 +273,17 @@ class TerminationsCfg:
 
 @configclass
 class CurriculumCfg:
-    b_lifting_ramp = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "b_lifting_object", "weight": 30.0, "num_steps": 10000}
-    )
-    l_lifting_ramp = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "l_lifting_object", "weight": 30.0, "num_steps": 10000}
-    )
-
     action_rate_ramp = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate", "weight": -1e-2, "num_steps": 20000}
+        params={"term_name": "action_rate", "weight": -1e-2, "num_steps": 200000}
     )
     b_joint_vel = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "b_joint_vel", "weight": -1e-2, "num_steps": 20000}
+        params={"term_name": "b_joint_vel", "weight": -1e-2, "num_steps": 200000}
     )
     l_joint_vel = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "l_joint_vel", "weight": -1e-2, "num_steps": 20000}
+        params={"term_name": "l_joint_vel", "weight": -1e-2, "num_steps": 200000}
     )
 
 
