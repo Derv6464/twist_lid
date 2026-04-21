@@ -81,29 +81,24 @@ def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")) 
     ang_vel = obj.data.root_ang_vel_w[:, :3]  # angular velocity
     return torch.norm(ang_vel, dim=1)
 
-def reset_object_to_ee(
-    env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
-    ee_frame_name: str,       
-    asset_cfg: SceneEntityCfg,
-    offset: list = [0.0, 0.0, 0.0],  # offset from EE tip in EE frame
-):
-    """Reset object pose to match the EE position at reset."""
-    asset = env.scene[asset_cfg.name]
-    ee_frame = env.scene[ee_frame_name]
+def ee_goal_distance_obs(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot_bottle"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame_bottle"),
+) -> torch.Tensor:
+    """3D vector from EE to command goal in robot root frame. Shape: (N, 3)."""
+    robot: RigidObject = env.scene[robot_cfg.name]
+    ee_frame = env.scene[ee_frame_cfg.name]
 
-    # Get EE world pose — shape (num_envs, 3) and (num_envs, 4)
-    ee_pos = ee_frame.data.target_pos_w[env_ids, 0, :]   # (N, 3)
-    ee_quat = ee_frame.data.target_quat_w[env_ids, 0, :] # (N, 4)
+    # Command is in robot root frame already
+    command = env.command_manager.get_command(command_name)
+    goal_pos_b = command[:, :3]
 
-    # Apply offset in world frame (simple case — offset is small)
-    offset_t = torch.tensor(offset, device=env.device).unsqueeze(0).expand(len(env_ids), -1)
-    object_pos = ee_pos + offset_t
+    # Use the FrameTransformer you already have — more accurate than body lookup
+    ee_pos_w = ee_frame.data.target_pos_w[:, 0, :]  # (N, 3)
+    ee_pos_b, _ = subtract_frame_transforms(
+        robot.data.root_pos_w, robot.data.root_quat_w, ee_pos_w
+    )
 
-    # Zero velocity
-    object_vel = torch.zeros(len(env_ids), 6, device=env.device)
-
-    # Write to sim
-    root_pose = torch.cat([object_pos, ee_quat], dim=-1)
-    asset.write_root_pose_to_sim(root_pose, env_ids=env_ids)
-    asset.write_root_velocity_to_sim(object_vel, env_ids=env_ids)
+    return goal_pos_b - ee_pos_b  # (N, 3)

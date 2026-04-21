@@ -161,6 +161,22 @@ class ObservationsCfg:
 
         b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
         l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose"})
+        meeting_pose_b = ObsTerm(func=mdp.generated_commands, params={"command_name": "meeting_pose"})
+
+        b_ee_to_meeting = ObsTerm(
+            func=mdp.ee_goal_distance_obs,
+            params={
+                "command_name": "meeting_pose",
+                "robot_cfg": SceneEntityCfg("robot_bottle"),
+            }
+        )
+        l_ee_to_meeting = ObsTerm(
+            func=mdp.ee_goal_distance_obs,
+            params={
+                "command_name": "meeting_pose",
+                "robot_cfg": SceneEntityCfg("robot_lid"),
+            }
+        )
 
         actions = ObsTerm(func=mdp.last_action)
 
@@ -212,7 +228,7 @@ class RewardsCfg:
             "object_cfg": SceneEntityCfg("lid"),
             "ee_frame_cfg": SceneEntityCfg("ee_frame_lid"),
         },
-        weight=10.0,  
+        weight=15.0,  
     )
 
     b_lifting_object = RewTerm(
@@ -223,8 +239,8 @@ class RewardsCfg:
 
     l_lifting_object = RewTerm(
         func=mdp.object_is_lifted,
-        params={"minimal_height": 0.02, "object_cfg": SceneEntityCfg("lid")},
-        weight=20.0,
+        params={"minimal_height": 0.015, "object_cfg": SceneEntityCfg("lid")},
+        weight=40.0,
     )
 
     b_object_goal_tracking = RewTerm(
@@ -359,24 +375,25 @@ class CurriculumCfg:
         params={"term_name": "l_joint_vel", "weight": -1e-2, "num_steps": 200000}
     )
 
-    b_to_meeting = CurrTerm(func=mdp.modify_reward_weight,
-        params={"term_name": "b_to_meeting", "weight": 10, "num_steps": 600000}
+    b_to_meeting = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "b_to_meeting", "weight": 10, "num_steps": 5_000_000}
     )
-
-    l_to_meeting = CurrTerm(func=mdp.modify_reward_weight,
-        params={"term_name": "l_to_meeting", "weight": 10, "num_steps": 600000}
+    l_to_meeting = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "l_to_meeting", "weight": 10, "num_steps": 5_000_000}
     )
-
-    alignment_pos = CurrTerm(func=mdp.modify_reward_weight,
-        params={"term_name": "alignment_pos", "weight": 15, "num_steps": 600000}
+    alignment_pos = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "alignment_pos", "weight": 15, "num_steps": 15_000_000}
     )
-    
-    alignment_rot = CurrTerm(func=mdp.modify_reward_weight,
-        params={"term_name": "alignment_rot", "weight": 20, "num_steps": 600000}
+    alignment_rot = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "alignment_rot", "weight": 20, "num_steps": 15_000_000}
     )
-
-    success =  CurrTerm(func=mdp.modify_reward_weight,
-        params={"term_name": "success", "weight": 100, "num_steps": 600000}
+    success = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "success", "weight": 100, "num_steps": 25_000_000}
     )
 
 
