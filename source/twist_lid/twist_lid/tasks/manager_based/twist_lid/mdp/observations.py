@@ -80,3 +80,30 @@ def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")) 
     obj = env.scene[object_cfg.name]
     ang_vel = obj.data.root_ang_vel_w[:, :3]  # angular velocity
     return torch.norm(ang_vel, dim=1)
+
+def reset_object_to_ee(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    ee_frame_name: str,       
+    asset_cfg: SceneEntityCfg,
+    offset: list = [0.0, 0.0, 0.0],  # offset from EE tip in EE frame
+):
+    """Reset object pose to match the EE position at reset."""
+    asset = env.scene[asset_cfg.name]
+    ee_frame = env.scene[ee_frame_name]
+
+    # Get EE world pose — shape (num_envs, 3) and (num_envs, 4)
+    ee_pos = ee_frame.data.target_pos_w[env_ids, 0, :]   # (N, 3)
+    ee_quat = ee_frame.data.target_quat_w[env_ids, 0, :] # (N, 4)
+
+    # Apply offset in world frame (simple case — offset is small)
+    offset_t = torch.tensor(offset, device=env.device).unsqueeze(0).expand(len(env_ids), -1)
+    object_pos = ee_pos + offset_t
+
+    # Zero velocity
+    object_vel = torch.zeros(len(env_ids), 6, device=env.device)
+
+    # Write to sim
+    root_pose = torch.cat([object_pos, ee_quat], dim=-1)
+    asset.write_root_pose_to_sim(root_pose, env_ids=env_ids)
+    asset.write_root_velocity_to_sim(object_vel, env_ids=env_ids)
