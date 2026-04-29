@@ -274,3 +274,62 @@ def lid_bottle_relative_pose(
     quat_rel = quat_mul(quat_inv(bottle.data.root_quat_w), lid.data.root_quat_w)
 
     return torch.cat([pos_rel, quat_rel], dim=-1)
+
+
+def ee_goal_distance_world_frame(
+    env,
+    command_name: str,
+    robot_cfg: SceneEntityCfg,
+    std: float = 0.1,
+):
+    """Distance between EE and commanded meeting point, both in world frame."""
+
+    robot: Articulation = env.scene[robot_cfg.name]
+    command = env.command_manager.get_command(command_name)
+
+    ee_pos = robot.data.body_pos_w[:, robot.find_bodies("panda_hand")[0][0]]
+
+    robot_bottle: Articulation = env.scene["robot_bottle"]
+    goal_pos_b = command[:, :3]
+    goal_pos_w, _ = combine_frame_transforms(
+        robot_bottle.data.root_pos_w,
+        robot_bottle.data.root_quat_w,
+        goal_pos_b,
+    )
+
+    dist = torch.norm(ee_pos - goal_pos_w, dim=-1)
+
+    return 1 - torch.tanh(dist / std)
+
+def _meeting_goal_pos_w(env, command_name: str) -> torch.Tensor:
+    """Returns meeting goal position in world frame. Shape: (N, 3)."""
+    robot_bottle: Articulation = env.scene["robot_bottle"]
+    command = env.command_manager.get_command(command_name)
+    goal_pos_w, _ = combine_frame_transforms(
+        robot_bottle.data.root_pos_w,
+        robot_bottle.data.root_quat_w,
+        command[:, :3],
+    )
+    return goal_pos_w
+
+def object_goal_distance_world(
+    env,
+    command_name: str,
+    object_cfg: SceneEntityCfg,
+    std: float = 0.1,
+    minimal_height: float = 0.05,
+) -> torch.Tensor:
+    """Reward for moving object toward meeting point in world frame.
+    Only gives reward if object is lifted above minimal_height.
+    """
+    obj: RigidObject = env.scene[object_cfg.name]
+    
+    goal_pos_w = _meeting_goal_pos_w(env, command_name)
+    
+    obj_pos_w = obj.data.root_pos_w[:, :3]
+    obj_height = obj_pos_w[:, 2] - env.scene.env_origins[:, 2]
+
+    dist = torch.norm(obj_pos_w - goal_pos_w, dim=-1)
+    reward = 1 - torch.tanh(dist / std)
+
+    return reward * (obj_height > minimal_height).float()

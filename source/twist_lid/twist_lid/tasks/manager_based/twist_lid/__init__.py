@@ -10,7 +10,7 @@ from . import agents
 ##
 # Register Gym environments.
 ##
-
+print("DEBUG: twist_lid envs __init__ loaded") 
 
 gym.register(
     id="Pick-v0",
@@ -54,3 +54,12 @@ gym.register(
     },
 )
 
+gym.register(
+    id="Isaac-TwistLid-v0",
+    entry_point=f"{__name__}.factory_env:FactoryEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.twist_env_cfg:FactoryTaskTwistLidCfg",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
+    },
+)

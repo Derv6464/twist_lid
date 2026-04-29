@@ -52,7 +52,8 @@ def main():
     index = 0
     # acquire all Isaac environments names
     for task_spec in gym.registry.values():
-        if "Place" in task_spec.id and (args_cli.keyword is None or args_cli.keyword in task_spec.id):
+        print(task_spec.id)
+        if "P" in task_spec.id and (args_cli.keyword is None or args_cli.keyword in task_spec.id):
             # add details to table
             table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
             # increment count

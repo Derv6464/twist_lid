@@ -100,13 +100,13 @@ class ActionsCfg:
         asset_name="robot_bottle",
         joint_names=["panda_finger.*"],
         scale=0.04, 
-        use_default_offset=False,
+        use_default_offset=True,
     )
     gripper_lid = mdp.JointPositionActionCfg(
         asset_name="robot_lid",
         joint_names=["panda_finger.*"],
         scale=0.03, 
-        use_default_offset=False,
+        use_default_offset=True,
     )
 
 
@@ -362,7 +362,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             prim_path="{ENV_REGEX_NS}/lid",
             spawn=sim_utils.UsdFileCfg(
                 usd_path='/home/dgargan2/twist_lid/assets/cap_nomaterial.usdc',
-                scale= (1.2, 1.2, 1.2), 
+                scale= (1.5, 1.5, 1.5), 
                 activate_contact_sensors=True,
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     disable_gravity=False,

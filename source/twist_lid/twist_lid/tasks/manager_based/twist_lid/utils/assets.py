@@ -19,14 +19,14 @@ BOTTLE_CFG = AssetBaseCfg(
 )
 
 def make_rigid_body():
-    usd_path = "/home/dgargan2/twist_lid/assets/bottle.usdc"
+    usd_path = "/home/dgargan2/twist_lid/assets/cap_flipped.usdc"
 
     stage = Usd.Stage.Open(usd_path)
 
     for prim in stage.Traverse():
 
         name = prim.GetName().lower()
-
+        print(name)
         # apply physics to the bottle root
         if "cap" in name:
             print("Applying rigid body:", prim.GetPath())
@@ -51,7 +51,7 @@ def make_rigid_body():
     stage.GetRootLayer().Save()
 
 def make_articilate_body():
-    usd_path = "/home/dgargan2/twist_lid/assets/cap.usdc"
+    usd_path = "/home/dgargan2/twist_lid/assets/cap_flipped.usdc"
 
     stage = Usd.Stage.Open(usd_path)
 

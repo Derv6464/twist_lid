@@ -84,21 +84,24 @@ def root_ang_vel_l2(env, object_cfg: SceneEntityCfg = SceneEntityCfg("bottle")) 
 def ee_goal_distance_obs(
     env: ManagerBasedRLEnv,
     command_name: str,
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot_bottle"),
-    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame_bottle"),
+    robot_cfg: SceneEntityCfg,
+    ee_frame_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
-    """3D vector from EE to command goal in robot root frame. Shape: (N, 3)."""
+    """3D vector from EE to meeting goal, both in world frame. Shape: (N, 3)."""
     robot: RigidObject = env.scene[robot_cfg.name]
     ee_frame = env.scene[ee_frame_cfg.name]
 
-    # Command is in robot root frame already
     command = env.command_manager.get_command(command_name)
     goal_pos_b = command[:, :3]
 
-    # Use the FrameTransformer you already have — more accurate than body lookup
-    ee_pos_w = ee_frame.data.target_pos_w[:, 0, :]  # (N, 3)
-    ee_pos_b, _ = subtract_frame_transforms(
-        robot.data.root_pos_w, robot.data.root_quat_w, ee_pos_w
+    robot_bottle: RigidObject = env.scene["robot_bottle"]
+    goal_pos_w, _ = combine_frame_transforms(
+        robot_bottle.data.root_pos_w,
+        robot_bottle.data.root_quat_w,
+        goal_pos_b,
     )
 
-    return goal_pos_b - ee_pos_b  # (N, 3)
+    # EE position in world frame
+    ee_pos_w = ee_frame.data.target_pos_w[:, 0, :]
+
+    return goal_pos_w - ee_pos_w 

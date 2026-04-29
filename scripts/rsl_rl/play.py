@@ -87,7 +87,7 @@ from isaaclab_rl.rsl_rl import (
 )
 from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
-import isaaclab_tasks  # noqa: F401
+import twist_lid.tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 

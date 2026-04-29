@@ -87,20 +87,27 @@ class CommandsCfg:
         ),
     )
 
-    meeting_pose = mdp.UniformPoseCommandCfg(
-        asset_name="robot_bottle",  
+    rbottle_pose_middle = mdp.UniformPoseCommandCfg(
+        asset_name="robot_bottle",
         body_name="panda_hand",
         resampling_time_range=(5.0, 5.0),
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.3, 0.4),
-            pos_y=(0.7, 0.8), 
-            pos_z=(0.2, 0.3),
-            roll=(0, 0),
-            pitch=(0, 0),
-            yaw=(0, 0),
-        ),
         debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.3, 0.5), pos_y=(0.7, 0.8), pos_z=(0.15, 0.3),
+            roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ),
     )
+
+    rlid_pose_middle = mdp.UniformPoseCommandCfg(
+        asset_name="robot_lid",
+        body_name="panda_hand",
+        resampling_time_range=(5.0, 5.0),
+        debug_vis=True,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.3, 0.5), pos_y=(-0.8, -0.7), pos_z=(0.3, 0.35),
+            roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ),
+    )   
 
 @configclass
 class ActionsCfg:
@@ -115,13 +122,13 @@ class ActionsCfg:
         asset_name="robot_bottle",
         joint_names=["panda_finger.*"],
         scale=0.04, 
-        use_default_offset=False,
+        use_default_offset=True,
     )
     gripper_lid = mdp.JointPositionActionCfg(
         asset_name="robot_lid",
         joint_names=["panda_finger.*"],
-        scale=0.03, 
-        use_default_offset=False,
+        scale=0.04, 
+        use_default_offset=True,
     )
 
 
@@ -161,22 +168,9 @@ class ObservationsCfg:
 
         b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose"})
         l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose"})
-        meeting_pose_b = ObsTerm(func=mdp.generated_commands, params={"command_name": "meeting_pose"})
 
-        b_ee_to_meeting = ObsTerm(
-            func=mdp.ee_goal_distance_obs,
-            params={
-                "command_name": "meeting_pose",
-                "robot_cfg": SceneEntityCfg("robot_bottle"),
-            }
-        )
-        l_ee_to_meeting = ObsTerm(
-            func=mdp.ee_goal_distance_obs,
-            params={
-                "command_name": "meeting_pose",
-                "robot_cfg": SceneEntityCfg("robot_lid"),
-            }
-        )
+        b_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rbottle_pose_middle"})
+        l_target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "rlid_pose_middle"})
 
         actions = ObsTerm(func=mdp.last_action)
 
@@ -206,7 +200,7 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.02, 0.02), "y": (-0.15, 0.15), "z": (0.0, 0.0)},
             "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("lid", body_names="PCO28_1810_PET_bottle_cap_ind"),
+            "asset_cfg": SceneEntityCfg("lid", body_names="cap_001"),
         },
     )
 
@@ -228,7 +222,7 @@ class RewardsCfg:
             "object_cfg": SceneEntityCfg("lid"),
             "ee_frame_cfg": SceneEntityCfg("ee_frame_lid"),
         },
-        weight=15.0,  
+        weight=10.0,  
     )
 
     b_lifting_object = RewTerm(
@@ -239,9 +233,11 @@ class RewardsCfg:
 
     l_lifting_object = RewTerm(
         func=mdp.object_is_lifted,
-        params={"minimal_height": 0.015, "object_cfg": SceneEntityCfg("lid")},
-        weight=40.0,
+        params={"minimal_height": 0.02, "object_cfg": SceneEntityCfg("lid")},
+        weight=20.0,
     )
+
+    #first half of the run, fo towards near points
 
     b_object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
@@ -291,22 +287,54 @@ class RewardsCfg:
         weight=5.0,
     )
 
-    b_to_meeting = RewTerm(
-        func=mdp.ee_goal_distance,
+    # next go for middle
+
+    b_object_goal_tracking_middle = RewTerm(
+        func=mdp.object_goal_distance,
         params={
-            "command_name": "meeting_pose",
+            "std": 0.2,
+            "minimal_height": 0.05, 
+            "command_name": "rbottle_pose_middle",
             "robot_cfg": SceneEntityCfg("robot_bottle"),
+            "object_cfg": SceneEntityCfg("bottle"),
         },
-        weight=1.0,
+        weight=0.5,
     )
 
-    l_to_meeting = RewTerm(
-        func=mdp.ee_goal_distance,
+    l_object_goal_tracking_middle = RewTerm(
+        func=mdp.object_goal_distance,
         params={
-            "command_name": "meeting_pose",
+            "std": 0.2,
+            "minimal_height": 0.05, 
+            "command_name": "rlid_pose_middle",
             "robot_cfg": SceneEntityCfg("robot_lid"),
+            "object_cfg": SceneEntityCfg("lid"),
         },
-        weight=1.0,
+        weight=0.5,
+    )
+
+    b_object_goal_tracking_fine_grained_middle = RewTerm(
+        func=mdp.object_goal_distance,
+        params={
+            "std": 0.05,
+            "minimal_height": 0.05,
+            "command_name": "rbottle_pose_middle",
+            "robot_cfg": SceneEntityCfg("robot_bottle"),
+            "object_cfg": SceneEntityCfg("bottle"),
+        },
+        weight=0.5,
+    )
+
+    l_object_goal_tracking_fine_grained_middle = RewTerm(
+        func=mdp.object_goal_distance,
+        params={
+            "std": 0.05,
+            "minimal_height": 0.05, 
+            "command_name": "rlid_pose_middle",
+            "robot_cfg": SceneEntityCfg("robot_lid"),
+            "object_cfg": SceneEntityCfg("lid"),
+        },
+        weight=0.5,
     )
 
     alignment_pos = RewTerm(
@@ -340,7 +368,6 @@ class RewardsCfg:
         weight=1.0,
     )
 
-
     b_joint_vel = RewTerm(
         func=mdp.joint_vel_l2,
         weight=-1e-4,
@@ -364,43 +391,52 @@ class TerminationsCfg:
 class CurriculumCfg:
     action_rate_ramp = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate", "weight": -1e-2, "num_steps": 200000}
+        params={"term_name": "action_rate", "weight": -2e-4, "num_steps": 1500000}
     )
     b_joint_vel = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "b_joint_vel", "weight": -1e-2, "num_steps": 200000}
+        params={"term_name": "b_joint_vel", "weight": -2e-4, "num_steps": 1500000}
     )
     l_joint_vel = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "l_joint_vel", "weight": -1e-2, "num_steps": 200000}
+        params={"term_name": "l_joint_vel", "weight": -2e-4, "num_steps": 1500000}
     )
 
-    b_to_meeting = CurrTerm(
+    b_object_goal_tracking = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "b_to_meeting", "weight": 10, "num_steps": 5_000_000}
+        params={"term_name": "b_object_goal_tracking_middle", "weight": 20, "num_steps": 900000}  
     )
-    l_to_meeting = CurrTerm(
+    l_object_goal_tracking = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "l_to_meeting", "weight": 10, "num_steps": 5_000_000}
+        params={"term_name": "l_object_goal_tracking_middle", "weight": 20, "num_steps": 900000}
+    )
+     
+    b_object_goal_trackin_fine = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "b_object_goal_tracking_fine_grained_middle", "weight": 10, "num_steps": 900000}
+    )
+    l_object_goal_tracking_fine = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "l_object_goal_tracking_fine_grained_middle", "weight": 10, "num_steps": 900000}
     )
     alignment_pos = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "alignment_pos", "weight": 15, "num_steps": 15_000_000}
+        params={"term_name": "alignment_pos", "weight": 5, "num_steps": 1000000}
     )
     alignment_rot = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "alignment_rot", "weight": 20, "num_steps": 15_000_000}
+        params={"term_name": "alignment_rot", "weight": 5, "num_steps": 1200000}
     )
     success = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "success", "weight": 100, "num_steps": 25_000_000}
+        params={"term_name": "success", "weight": 100, "num_steps": 1300000}
     )
 
 
 
 @configclass
 class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
-    scene: TwistLidSceneCfg = TwistLidSceneCfg(num_envs=128, env_spacing=4.0)
+    scene: TwistLidSceneCfg = TwistLidSceneCfg(num_envs=100, env_spacing=4.0)
 
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -418,6 +454,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.robot_lid = FRANKA_PANDA_CFG.replace(
             prim_path="{ENV_REGEX_NS}/Robot_Lid"
         )
+
         self.scene.robot_bottle.init_state.pos = [0.0, 0.0, 0.0]
         self.scene.robot_lid.init_state.pos    = [0.0, 1.5, 0.0]
 
@@ -472,7 +509,7 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.lid = ArticulationCfg(
             prim_path="{ENV_REGEX_NS}/lid",
             spawn=sim_utils.UsdFileCfg(
-                usd_path='/home/dgargan2/twist_lid/assets/cap_nomaterial.usdc',
+                usd_path='/home/dgargan2/twist_lid/assets/cap_flipped.usdc',
                 scale= (1.2, 1.2, 1.2), 
                 activate_contact_sensors=True,
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(

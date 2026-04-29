@@ -11,7 +11,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 @configclass
 class PPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24  # Increased from 16 for more data per update
-    max_iterations = 50000
+    max_iterations = 100000
     save_interval = 4000  # Save more frequently to monitor progress
     experiment_name = "twist_lid"
     policy = RslRlPpoActorCriticCfg(
