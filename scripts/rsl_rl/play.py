@@ -197,6 +197,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # reset environment
     obs = env.get_observations()
+
+    num_envs = env.unwrapped.num_envs
+
+    # per-episode "has ever succeeded"
+    bottle_success = torch.zeros(num_envs, dtype=torch.bool, device=env.unwrapped.device)
+    lid_success = torch.zeros(num_envs, dtype=torch.bool, device=env.unwrapped.device)
+
+    episode_results = []   # stores (bottle, lid, combined)
+    episode_count = 0
+
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
@@ -212,6 +222,54 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
                 policy.reset(dones)
             else:
                 policy_nn.reset(dones)
+
+        # -----------------------------
+        # OBJECT HEIGHTS
+        # -----------------------------
+        bottle_z = env.unwrapped.scene["bottle"].data.root_pos_w[:, 2]
+        lid_z = env.unwrapped.scene["lid"].data.root_pos_w[:, 2]
+
+        # -----------------------------
+        # INDIVIDUAL SUCCESS FLAGS
+        # -----------------------------
+        bottle_now = bottle_z > 0.40
+        lid_now = lid_z > 0.04
+
+        # latch success over episode
+        bottle_success |= bottle_now
+        lid_success |= lid_now
+
+        # combined success
+        combined_success = bottle_success & lid_success
+
+        if not torch.is_tensor(dones):
+            dones = torch.tensor(dones, device=episode_success.device)
+
+        for i in range(num_envs):
+            if dones[i]:
+                # store per-episode results
+                episode_results.append((
+                    bool(bottle_success[i].item()),
+                    bool(lid_success[i].item()),
+                    bool(combined_success[i].item())
+                ))
+
+                # reset episode tracking
+                bottle_success[i] = False
+                lid_success[i] = False
+
+                episode_count += 1
+
+        if episode_count > 0 and episode_count % 5 == 0:
+            b_rate = sum(x[0] for x in episode_results) / len(episode_results)
+            l_rate = sum(x[1] for x in episode_results) / len(episode_results)
+            c_rate = sum(x[2] for x in episode_results) / len(episode_results)
+
+            print(f"\n[EVAL] Episodes: {episode_count}")
+            print(f"  Bottle success: {b_rate:.3f}")
+            print(f"  Lid success:    {l_rate:.3f}")
+            print(f"  Combined:       {c_rate:.3f}\n")
+
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video
@@ -222,6 +280,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
+
+    if len(episode_success_list) > 0:
+        final_success = sum(episode_success_list) / len(episode_success_list)
+        print("\n==============================")
+        print(f"FINAL SUCCESS RATE: {final_success:.3f}")
+        print("==============================\n")
+
 
     # close the simulator
     env.close()

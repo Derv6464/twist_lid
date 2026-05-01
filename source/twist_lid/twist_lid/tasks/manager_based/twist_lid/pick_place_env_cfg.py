@@ -227,13 +227,13 @@ class RewardsCfg:
 
     b_lifting_object = RewTerm(
         func=mdp.object_is_lifted,
-        params={"minimal_height": 0.4, "object_cfg": SceneEntityCfg("bottle")},
+        params={"minimal_height": 0.15, "object_cfg": SceneEntityCfg("bottle")},
         weight=20.0, 
     )
 
     l_lifting_object = RewTerm(
         func=mdp.object_is_lifted,
-        params={"minimal_height": 0.04, "object_cfg": SceneEntityCfg("lid")},
+        params={"minimal_height": 0.02, "object_cfg": SceneEntityCfg("lid")},
         weight=20.0,
     )
 
@@ -479,95 +479,58 @@ class TwistLidEnvCfg(ManagerBasedRLEnvCfg):
             "panda_finger_joint.*": 0.04,  
         }
 
-        #self.scene.bottle = ArticulationCfg(
-        #    prim_path="{ENV_REGEX_NS}/bottle",
-        #    spawn=sim_utils.UsdFileCfg(
-        #        usd_path='/home/dgargan2/twist_lid/assets/bottle.usdc',
-        #        activate_contact_sensors=True,
-        #        scale= (1.2, 1.2, 1.2), 
-        #        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-        #            disable_gravity=False,
-        #            max_depenetration_velocity=5.0,
-        #            linear_damping=0.0,
-        #            angular_damping=0.0,
-        #            max_linear_velocity=1000.0,
-        #            max_angular_velocity=3666.0,
-        #            enable_gyroscopic_forces=True,
-        #            solver_position_iteration_count=192,
-        #            solver_velocity_iteration_count=1,
-        #            max_contact_impulse=1e32,
-        #        ),
-        #        mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
-        #        collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
-        #    ),
-        #    init_state=ArticulationCfg.InitialStateCfg(
-        #        pos=(0.4, 0.0, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
-        #    ),
-        #    actuators={},
-        #)
-#
-        #self.scene.lid = ArticulationCfg(
-        #    prim_path="{ENV_REGEX_NS}/lid",
-        #    spawn=sim_utils.UsdFileCfg(
-        #        usd_path='/home/dgargan2/twist_lid/assets/cap_flipped.usdc',
-        #        scale= (1.2, 1.2, 1.2), 
-        #        activate_contact_sensors=True,
-        #        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-        #            disable_gravity=False,
-        #            max_depenetration_velocity=5.0,
-        #            linear_damping=0.0,
-        #            angular_damping=0.0,
-        #            max_linear_velocity=1000.0,
-        #            max_angular_velocity=3666.0,
-        #            enable_gyroscopic_forces=True,
-        #            solver_position_iteration_count=192,
-        #            solver_velocity_iteration_count=1,
-        #            max_contact_impulse=1e32,
-        #        ),
-        #        mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
-        #        collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
-        #    ),
-        #    init_state=ArticulationCfg.InitialStateCfg(
-        #        pos=(0.4, 1.4, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
-        #    ),
-        #    actuators={},
-        #)
-        self.scene.bottle = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Bottle",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.03*1.2, height=0.2*1.2,
+        self.scene.bottle = ArticulationCfg(
+            prim_path="{ENV_REGEX_NS}/bottle",
+            spawn=sim_utils.UsdFileCfg(
+                usd_path='/home/dgargan2/twist_lid/assets/bottle.usdc',
+                activate_contact_sensors=True,
+                scale= (1.2, 1.2, 1.2), 
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
                     disable_gravity=False,
+                    max_depenetration_velocity=5.0,
+                    linear_damping=0.0,
+                    angular_damping=0.0,
+                    max_linear_velocity=1000.0,
+                    max_angular_velocity=3666.0,
+                    enable_gyroscopic_forces=True,
+                    solver_position_iteration_count=192,
+                    solver_velocity_iteration_count=1,
+                    max_contact_impulse=1e32,
                 ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.15),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), roughness=1.0),
+                mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
+                collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
             ),
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.4, 0.0, 0.01], rot=[1.0, 0.0, 0.0, 0.0]),
+            init_state=ArticulationCfg.InitialStateCfg(
+                pos=(0.4, 0.0, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+            ),
+            actuators={},
         )
 
-        self.scene.lid = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Lid",
-            spawn=sim_utils.CylinderCfg(
-                radius=0.02*1.2, height=0.03*1.2,
+        self.scene.lid = ArticulationCfg(
+            prim_path="{ENV_REGEX_NS}/lid",
+            spawn=sim_utils.UsdFileCfg(
+                usd_path='/home/dgargan2/twist_lid/assets/cap_flipped.usdc',
+                scale= (1.2, 1.2, 1.2), 
+                activate_contact_sensors=True,
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    solver_position_iteration_count=16,
-                    solver_velocity_iteration_count=1,
-                    max_angular_velocity=1000.0,
-                    max_linear_velocity=1000.0,
-                    max_depenetration_velocity=5.0,
                     disable_gravity=False,
+                    max_depenetration_velocity=5.0,
+                    linear_damping=0.0,
+                    angular_damping=0.0,
+                    max_linear_velocity=1000.0,
+                    max_angular_velocity=3666.0,
+                    enable_gyroscopic_forces=True,
+                    solver_position_iteration_count=192,
+                    solver_velocity_iteration_count=1,
+                    max_contact_impulse=1e32,
                 ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=0.03),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.4, 1.0), roughness=1.0),
+                mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
+                collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
             ),
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.4, 1.4, 0.01], rot=[1.0, 0.0, 0.0, 0.0]),
+            init_state=ArticulationCfg.InitialStateCfg(
+                pos=(0.4, 1.4, 0.01), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+            ),
+            actuators={},
         )
 
         marker_cfg_bottle = FRAME_MARKER_CFG.copy()
