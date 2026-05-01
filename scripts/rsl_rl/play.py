@@ -51,6 +51,14 @@ sys.argv = [sys.argv[0]] + hydra_args
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
+"""Check for installed RSL-RL version."""
+
+import importlib.metadata as metadata
+
+from packaging import version
+
+installed_version = metadata.version("rsl-rl-lib")
+
 """Rest everything follows."""
 
 import os
@@ -70,14 +78,20 @@ from isaaclab.envs import (
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
 
-from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
+from isaaclab_rl.rsl_rl import (
+    RslRlBaseRunnerCfg,
+    RslRlVecEnvWrapper,
+    export_policy_as_jit,
+    export_policy_as_onnx,
+    handle_deprecated_rsl_rl_cfg,
+)
 from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
-import isaaclab_tasks  # noqa: F401
+import twist_lid.tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
-import twist_lid.tasks  # noqa: F401
+# PLACEHOLDER: Extension template (do not remove this comment)
 
 
 @hydra_task_config(args_cli.task, args_cli.agent)
@@ -90,6 +104,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # override configurations with non-hydra CLI arguments
     agent_cfg: RslRlBaseRunnerCfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
+
+    # handle deprecated configurations
+    agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
 
     # set the environment seed
     # note: certain randomizations occur in the environment initialization so we set the seed here
@@ -150,32 +167,46 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # obtain the trained policy for inference
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
-    # extract the neural network module
-    # we do this in a try-except to maintain backwards compatibility.
-    try:
-        # version 2.3 onwards
-        policy_nn = runner.alg.policy
-    except AttributeError:
-        # version 2.2 and below
-        policy_nn = runner.alg.actor_critic
-
-    # extract the normalizer
-    if hasattr(policy_nn, "actor_obs_normalizer"):
-        normalizer = policy_nn.actor_obs_normalizer
-    elif hasattr(policy_nn, "student_obs_normalizer"):
-        normalizer = policy_nn.student_obs_normalizer
-    else:
-        normalizer = None
-
-    # export policy to onnx/jit
+    # export the trained policy to JIT and ONNX formats
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
-    export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
-    export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
+
+    if version.parse(installed_version) >= version.parse("4.0.0"):
+        # use the new export functions for rsl-rl >= 4.0.0
+        runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")
+        runner.export_policy_to_onnx(path=export_model_dir, filename="policy.onnx")
+    else:
+        # extract the neural network for rsl-rl < 4.0.0
+        if version.parse(installed_version) >= version.parse("2.3.0"):
+            policy_nn = runner.alg.policy
+        else:
+            policy_nn = runner.alg.actor_critic
+
+        # extract the normalizer
+        if hasattr(policy_nn, "actor_obs_normalizer"):
+            normalizer = policy_nn.actor_obs_normalizer
+        elif hasattr(policy_nn, "student_obs_normalizer"):
+            normalizer = policy_nn.student_obs_normalizer
+        else:
+            normalizer = None
+
+        # export to JIT and ONNX
+        export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
+        export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
 
     dt = env.unwrapped.step_dt
 
     # reset environment
     obs = env.get_observations()
+
+    num_envs = env.unwrapped.num_envs
+
+
+    bottle_success = torch.zeros(num_envs, dtype=torch.bool, device=env.unwrapped.device)
+    lid_success = torch.zeros(num_envs, dtype=torch.bool, device=env.unwrapped.device)
+
+    episode_results = [] 
+    episode_count = 0
+
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
@@ -187,7 +218,50 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             # env stepping
             obs, _, dones, _ = env.step(actions)
             # reset recurrent states for episodes that have terminated
-            policy_nn.reset(dones)
+            if version.parse(installed_version) >= version.parse("4.0.0"):
+                policy.reset(dones)
+            else:
+                policy_nn.reset(dones)
+
+        bottle_z = env.unwrapped.scene["bottle"].data.root_pos_w[:, 2]
+        lid_z = env.unwrapped.scene["lid"].data.root_pos_w[:, 2]
+
+
+        bottle_now = bottle_z > 0.15
+        lid_now = lid_z > 0.04
+
+        bottle_success |= bottle_now
+        lid_success |= lid_now
+
+        combined_success = bottle_success & lid_success
+
+        if not torch.is_tensor(dones):
+            dones = torch.tensor(dones, device=episode_success.device)
+
+        for i in range(num_envs):
+            if dones[i]:
+
+                episode_results.append((
+                    bool(bottle_success[i].item()),
+                    bool(lid_success[i].item()),
+                    bool(combined_success[i].item())
+                ))
+
+                bottle_success[i] = False
+                lid_success[i] = False
+        
+                episode_count += 1
+
+        if episode_count > 0 and episode_count % 5 == 0:
+            b_rate = sum(x[0] for x in episode_results) / len(episode_results)
+            l_rate = sum(x[1] for x in episode_results) / len(episode_results)
+            c_rate = sum(x[2] for x in episode_results) / len(episode_results)
+           # print(bottle_z)
+            print(f"\n[EVAL] Episodes: {episode_count}")
+            print(f"  Bottle success: {b_rate:.3f}")
+            print(f"  Lid success:    {l_rate:.3f}")
+            print(f"  Combined:       {c_rate:.3f}\n")
+
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video
@@ -198,6 +272,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
+
+    if len(episode_success_list) > 0:
+        final_success = sum(episode_success_list) / len(episode_success_list)
+        print("\n==============================")
+        print(f"FINAL SUCCESS RATE: {final_success:.3f}")
+        print("==============================\n")
+
 
     # close the simulator
     env.close()
