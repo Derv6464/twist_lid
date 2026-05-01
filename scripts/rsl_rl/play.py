@@ -200,11 +200,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     num_envs = env.unwrapped.num_envs
 
-    # per-episode "has ever succeeded"
+
     bottle_success = torch.zeros(num_envs, dtype=torch.bool, device=env.unwrapped.device)
     lid_success = torch.zeros(num_envs, dtype=torch.bool, device=env.unwrapped.device)
 
-    episode_results = []   # stores (bottle, lid, combined)
+    episode_results = [] 
     episode_count = 0
 
     timestep = 0
@@ -223,23 +223,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             else:
                 policy_nn.reset(dones)
 
-        # -----------------------------
-        # OBJECT HEIGHTS
-        # -----------------------------
         bottle_z = env.unwrapped.scene["bottle"].data.root_pos_w[:, 2]
         lid_z = env.unwrapped.scene["lid"].data.root_pos_w[:, 2]
 
-        # -----------------------------
-        # INDIVIDUAL SUCCESS FLAGS
-        # -----------------------------
-        bottle_now = bottle_z > 0.40
+
+        bottle_now = bottle_z > 0.15
         lid_now = lid_z > 0.04
 
-        # latch success over episode
         bottle_success |= bottle_now
         lid_success |= lid_now
 
-        # combined success
         combined_success = bottle_success & lid_success
 
         if not torch.is_tensor(dones):
@@ -247,24 +240,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
         for i in range(num_envs):
             if dones[i]:
-                # store per-episode results
+
                 episode_results.append((
                     bool(bottle_success[i].item()),
                     bool(lid_success[i].item()),
                     bool(combined_success[i].item())
                 ))
 
-                # reset episode tracking
                 bottle_success[i] = False
                 lid_success[i] = False
-
+        
                 episode_count += 1
 
         if episode_count > 0 and episode_count % 5 == 0:
             b_rate = sum(x[0] for x in episode_results) / len(episode_results)
             l_rate = sum(x[1] for x in episode_results) / len(episode_results)
             c_rate = sum(x[2] for x in episode_results) / len(episode_results)
-
+           # print(bottle_z)
             print(f"\n[EVAL] Episodes: {episode_count}")
             print(f"  Bottle success: {b_rate:.3f}")
             print(f"  Lid success:    {l_rate:.3f}")

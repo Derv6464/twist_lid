@@ -13,7 +13,8 @@ from isaaclab.assets import RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.math import subtract_frame_transforms
 
-if TYPE_CHECKING:twist_list/*
+if TYPE_CHECKING:
+    from isaaclab.envs import ManagerBasedRLEnv
 
 
 def object_position_in_robot_root_frame(
